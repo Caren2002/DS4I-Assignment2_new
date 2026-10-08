@@ -5,14 +5,16 @@ editor: visual
 ---
 
 ```{r}
+#| include: false
 library(tidyverse)
 ```
 
 ## Explanatory Data Analysis
 
-This is the explanatory data section. In this section we will look at the explore the images.
+This is the explanatory data section. In this section we will look at the explore the images. The goal of this section is to look at the images and try to establish if there are any differences between people, digits, and sessions.
 
 ```{r}
+#| include: false
 data <- handwriting
 dim(data$images) # 25000 x 28 x 28 x 1
 head(data$metadata)
@@ -21,12 +23,14 @@ names(data)
 ```
 
 ```{r}
+#| include: false
 unique(data$metadata$person_id)
 unique(data$metadata$digit)
 unique(data$metadata$session)
 ```
 
 ```{r}
+#| include: false
 display_image <- function(image, title = "") {
   
   if (length(dim(image)) == 3) {
@@ -43,13 +47,20 @@ display_image <- function(image, title = "") {
 ```
 
 ```{r}
+#| include: false
+#This code displays a persons image
 display_image(
   data$images[1,,,],
   "First image"
 )
 ```
 
+### Compare the same person across sessions
+
+Firstly, we will compare all 20 peoples handwriting across one session. The main goal of this exercise is to check whether there are any visible variations among peoples handwriting within a particular session. The first image will compare the people writing the digit 0 in session 1.
+
 ```{r}
+#| include: false
 people_examples <- data$metadata %>%
   filter(
     digit == 0,
@@ -61,10 +72,7 @@ people_examples <- data$metadata %>%
 ```
 
 ```{r}
-people_examples
-```
-
-```{r}
+#| echo: false
 par(
   mfrow = c(4, 5),
   mar = c(1, 1, 2, 1)
@@ -74,6 +82,156 @@ for (i in 1:nrow(people_examples)) {
   
   image_id <- people_examples$image_id[i]
   person <- people_examples$person_id[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Person", person)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+From the image above we can see that there are different variations in the way people write the digit zero in the first session. Some peoples zeros are more elongated while others look more rounded. The size of the digit differs from person to person. The digits are tilted in different directions, some peoples zero are tilted to the left while others are tilted to the right.
+
+For a more accurate prediction we will compare the between person variation for a different image in the same session. For this we will now compare the between person variation in session one for the digit 1.
+
+```{r}
+#| include: false
+
+
+people_examples_1 <- data$metadata %>%
+  filter(
+    digit == 1,
+    session == 1
+  ) %>%
+  group_by(person_id) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+#| echo: false
+par(
+  mfrow = c(4, 5),
+  mar = c(1, 1, 2, 1)
+)
+
+
+for (i in 1:nrow(people_examples_1)) {
+  
+  image_id <- people_examples_1$image_id[i]
+  person <- people_examples_1$person_id[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Person", person)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+In the image above we can see the that there are clear stylistic differences in the peoples handwriting. A visual comparison shows that some of the digits are more elongated than others. There is a clear difference in the way person 3 and person 20 wrote the same digit. Out of all the people, person 18 wrote a digit that tilts most to the right.
+
+```{r}
+#| include: false
+
+
+people_examples_2 <- data$metadata %>%
+  filter(
+    digit == 2,
+    session == 1
+  ) %>%
+  group_by(person_id) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+#| echo: false
+par(
+  mfrow = c(4, 5),
+  mar = c(1, 1, 2, 1)
+)
+
+
+for (i in 1:nrow(people_examples_2)) {
+  
+  image_id <- people_examples_2$image_id[i]
+  person <- people_examples_2$person_id[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Person", person)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+```{r}
+#| include: false
+
+
+people_examples_3 <- data$metadata %>%
+  filter(
+    digit == 3,
+    session == 1
+  ) %>%
+  group_by(person_id) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+#| echo: false
+par(
+  mfrow = c(4, 5),
+  mar = c(1, 1, 2, 1)
+)
+
+
+for (i in 1:nrow(people_examples_3)) {
+  
+  image_id <- people_examples_3$image_id[i]
+  person <- people_examples_3$person_id[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Person", person)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+```{r}
+#| include: false
+
+
+people_examples_4 <- data$metadata %>%
+  filter(
+    digit == 4,
+    session == 1
+  ) %>%
+  group_by(person_id) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+#| echo: false
+par(
+  mfrow = c(4, 5),
+  mar = c(1, 1, 2, 1)
+)
+
+
+for (i in 1:nrow(people_examples_4)) {
+  
+  image_id <- people_examples_4$image_id[i]
+  person <- people_examples_4$person_id[i]
   
   display_image(
     data$images[image_id,,,],
