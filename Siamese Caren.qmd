@@ -14,8 +14,9 @@ library(tidyverse)
 This is the explanatory data section. In this section we will look at the explore the images. The goal of this section is to look at the images and try to establish if there are any differences between people, digits, and sessions.
 
 ```{r}
+#| label: Read the Data
 #| include: false
-data <- handwriting
+data <- readRDS("handwriting.rds")
 dim(data$images) # 25000 x 28 x 28 x 1
 head(data$metadata)
 names(data)
@@ -55,7 +56,7 @@ display_image(
 )
 ```
 
-### Compare the same person across sessions
+### Compare the variation between the people
 
 Firstly, we will compare all 20 peoples handwriting across one session. The main goal of this exercise is to check whether there are any visible variations among peoples handwriting within a particular session. The first image will compare the people writing the digit 0 in session 1.
 
@@ -236,6 +237,230 @@ for (i in 1:nrow(people_examples_4)) {
   display_image(
     data$images[image_id,,,],
     paste("Person", person)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+### Comparing the digits within people
+
+The next thing we will explore is if there is variation within a persons handwriting. To do this we will randomly select 3 people and we will compare their handwriting across the five different sessions. This particular section is important because later we will build a Siamese network that will compare whether two images were written by the same person or not. A preliminary analysis will visually help us determine if there are similarities within a persons handwriting.
+
+#### Person 1
+
+```{r}
+#| include: false
+session_examples <- data$metadata %>%
+  filter(
+    person_id == 1,
+    digit == 0
+  ) %>%
+  group_by(session) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+#| echo: false
+par(
+  mfrow = c(2, 3),
+  mar = c(2, 2, 3, 2)
+)
+
+for (i in 1:nrow(session_examples)) {
+  
+  image_id <- session_examples$image_id[i]
+  session <- session_examples$session[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Session", session)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+First, we examine Person 1's handwriting for the digit '0' across five sessions. Visually, the digits display consistent stylistic characteristics; while maintaining an overall rounded shape, they feature a noticeably flattened, vertical edge along the left side.
+
+#### Person 18
+
+```{r}
+#| include: false
+session_examples <- data$metadata %>%
+  filter(
+    person_id == 18,
+    digit == 0
+  ) %>%
+  group_by(session) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+#| echo: false
+par(
+  mfrow = c(2, 3),
+  mar = c(2, 2, 3, 2)
+)
+
+for (i in 1:nrow(session_examples)) {
+  
+  image_id <- session_examples$image_id[i]
+  session <- session_examples$session[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Session", session)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+We now examine Person 18's handwriting for the digit '0' across five sessions. A visually inspection shows the digits display consistent stylistic characteristics. The digits are all elongated and have an oval shape. Directionally, the '0' are tilted to the right.
+
+#### Person 9
+
+```{r}
+#| include: false
+session_examples <- data$metadata %>%
+  filter(
+    person_id == 9,
+    digit == 0
+  ) %>%
+  group_by(session) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+#| echo: false
+par(
+  mfrow = c(2, 3),
+  mar = c(2, 2, 3, 2)
+)
+
+for (i in 1:nrow(session_examples)) {
+  
+  image_id <- session_examples$image_id[i]
+  session <- session_examples$session[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Session", session)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+Finallly, we examine Person 9's handwriting for the digit '0' across five sessions. Visually, the digits display consistent stylistic characteristics. Person 9's writes their '0's with a rounded shape.
+
+### Comparing the digits of the same person
+
+Finally, we will assess the within person variation of the different digits. The main goal of this is to assess whether there are similarities between a persons handwriting for different digits. This section is important because the Siamese and CNN networks will be tasked identifying similarities within the different digits.
+
+For this section we will use the same three people from the previous section. We will keep the session constant and we will assess them on session one.
+
+#### Person 1
+
+```{r}
+person_examples <- data$metadata %>%
+  filter(
+    person_id == 1,
+    session == 1
+  ) %>%
+  group_by(digit) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+
+
+```
+
+```{r}
+par(
+  mfrow = c(2, 3),
+  mar = c(2, 2, 3, 2)
+)
+
+for (i in 1:nrow(person_examples)) {
+  
+  image_id <- person_examples$image_id[i]
+  digit <- person_examples$digit[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Digit", digit)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+Visually, person 1's digits are centered on the image, and occupy similar proportions relative to the size of the images. Digits 1, 2, and 3 share a similar curved arc like top loop shape. Digits 1, and 2 have similar flat horizontal strokes at the base.
+
+#### Person 9
+
+```{r}
+person_examples <- data$metadata %>%
+  filter(
+    person_id == 9,
+    session == 1
+  ) %>%
+  group_by(digit) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+par(
+  mfrow = c(2, 3),
+  mar = c(2, 2, 3, 2)
+)
+
+for (i in 1:nrow(person_examples)) {
+  
+  image_id <- person_examples$image_id[i]
+  digit <- person_examples$digit[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Digit", digit)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
+
+#### Person 18
+
+```{r}
+person_examples <- data$metadata %>%
+  filter(
+    person_id == 18,
+    session == 1
+  ) %>%
+  group_by(digit) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+par(
+  mfrow = c(2, 3),
+  mar = c(2, 2, 3, 2)
+)
+
+for (i in 1:nrow(person_examples)) {
+  
+  image_id <- person_examples$image_id[i]
+  digit <- person_examples$digit[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Digit", digit)
   )
 }
 
