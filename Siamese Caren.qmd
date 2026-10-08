@@ -1,0 +1,85 @@
+---
+title: "Siamese Network Caren"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+## Explanatory Data Analysis
+
+This is the explanatory data section. In this section we will look at the explore the images.
+
+```{r}
+data <- handwriting
+dim(data$images) # 25000 x 28 x 28 x 1
+head(data$metadata)
+names(data)
+
+```
+
+```{r}
+unique(data$metadata$person_id)
+unique(data$metadata$digit)
+unique(data$metadata$session)
+```
+
+```{r}
+display_image <- function(image, title = "") {
+  
+  if (length(dim(image)) == 3) {
+    image <- image[, , 1]
+  }
+  
+  image(
+    t(apply(image, 2, rev)),
+    col = gray.colors(256),
+    axes = FALSE,
+    main = title
+  )
+}
+```
+
+```{r}
+display_image(
+  data$images[1,,,],
+  "First image"
+)
+```
+
+```{r}
+people_examples <- data$metadata %>%
+  filter(
+    digit == 0,
+    session == 1
+  ) %>%
+  group_by(person_id) %>%
+  slice_sample(n = 1) %>%
+  ungroup()
+```
+
+```{r}
+people_examples
+```
+
+```{r}
+par(
+  mfrow = c(4, 5),
+  mar = c(1, 1, 2, 1)
+)
+
+for (i in 1:nrow(people_examples)) {
+  
+  image_id <- people_examples$image_id[i]
+  person <- people_examples$person_id[i]
+  
+  display_image(
+    data$images[image_id,,,],
+    paste("Person", person)
+  )
+}
+
+par(mfrow = c(1, 1))
+```
