@@ -111,7 +111,7 @@ kable(
 #This code displays a persons image
 display_image(
   data$images[1,,,],
-  "First image"
+  "Example of image"
 )
 ```
 
