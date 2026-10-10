@@ -1,5 +1,5 @@
 ---
-title: "Siamese Network Caren"
+title: "EDA Rough"
 format: html
 editor: visual
 ---
@@ -47,8 +47,67 @@ display_image <- function(image, title = "") {
 }
 ```
 
+### Dataset and Metadata Overview
+
 ```{r}
-#| include: false
+#| echo: false
+
+library(knitr)
+library(dplyr)
+
+# 1. Extract values dynamically from your data structure
+unique_subjects <- paste(range(data$metadata$person_id), collapse = " - ")
+n_subjects      <- length(unique(data$metadata$person_id))
+
+unique_sessions <- paste(range(data$metadata$session), collapse = " - ")
+n_sessions      <- length(unique(data$metadata$session))
+
+unique_digits   <- paste(range(data$metadata$digit), collapse = " - ")
+n_digits        <- length(unique(data$metadata$digit))
+
+total_samples   <- nrow(data$metadata)
+
+# Image Dimensions & Color Channels
+img_shape       <- dim(data$images)
+img_res         <- paste0(img_shape[1], " x ", img_shape[2], " pixels")
+color_channels  <- if (length(img_shape) > 2) paste(img_shape[3], "Channel(s)") else "1 (Grayscale)"
+
+# Samples per digit summary string
+samples_per_digit <- paste(table(data$metadata$digit), collapse = ", ")
+
+# 2. Construct the Summary Data Frame
+metadata_summary <- data.frame(
+  `Metadata Attribute` = c(
+    "Person ID Range (`person_id`)",
+    "Session ID Range (`session`)",
+    "Digit Classes (`digit`)",
+    "Total Dataset Size ($N$)",
+    "Image Resolution (Height x Width)",
+    "Color Channels",
+    "Class Distribution (Digits 0 to 4)"
+  ),
+  `Value / Description` = c(
+    paste0(unique_subjects, " (", n_subjects, " unique subjects)"),
+    paste0(unique_sessions, " (", n_sessions, " distinct sessions)"),
+    paste0(unique_digits, " (", n_digits, " classes)"),
+    paste0(total_samples, " images"),
+    img_res,
+    color_channels,
+    paste0("Balanced (", samples_per_digit, " samples each)")
+  ),
+  check.names = FALSE
+)
+
+# 3. Render using kable
+kable(
+  metadata_summary,
+  booktabs = TRUE,
+  caption = "Summary of Dataset Metadata and Image Dimensions"
+)
+```
+
+```{r}
+#| echo: false
 #This code displays a persons image
 display_image(
   data$images[1,,,],
@@ -150,7 +209,7 @@ people_examples_2 <- data$metadata %>%
 ```
 
 ```{r}
-#| echo: false
+#| include: false
 par(
   mfrow = c(4, 5),
   mar = c(1, 1, 2, 1)
@@ -186,7 +245,7 @@ people_examples_3 <- data$metadata %>%
 ```
 
 ```{r}
-#| echo: false
+#| include: false
 par(
   mfrow = c(4, 5),
   mar = c(1, 1, 2, 1)
@@ -222,7 +281,7 @@ people_examples_4 <- data$metadata %>%
 ```
 
 ```{r}
-#| echo: false
+#| include: false
 par(
   mfrow = c(4, 5),
   mar = c(1, 1, 2, 1)
@@ -356,7 +415,7 @@ for (i in 1:nrow(session_examples)) {
 par(mfrow = c(1, 1))
 ```
 
-Finallly, we examine Person 9's handwriting for the digit '0' across five sessions. Visually, the digits display consistent stylistic characteristics. Person 9's writes their '0's with a rounded shape.
+Finallly, we examine Person 9's handwriting for the digit '0' across five sessions. Visually, the digits display consistent stylistic characteristics. Person 9's writes their '0's with a rounded shape. The digits are relatively centered in the image.
 
 ### Comparing the digits of the same person
 
@@ -367,6 +426,7 @@ For this section we will use the same three people from the previous section. We
 #### Person 1
 
 ```{r}
+#| include: false
 person_examples <- data$metadata %>%
   filter(
     person_id == 1,
@@ -380,6 +440,7 @@ person_examples <- data$metadata %>%
 ```
 
 ```{r}
+#| echo: false
 par(
   mfrow = c(2, 3),
   mar = c(2, 2, 3, 2)
@@ -404,6 +465,7 @@ Visually, person 1's digits are centered on the image, and occupy similar propor
 #### Person 9
 
 ```{r}
+#| include: false
 person_examples <- data$metadata %>%
   filter(
     person_id == 9,
@@ -415,6 +477,7 @@ person_examples <- data$metadata %>%
 ```
 
 ```{r}
+#| echo: false
 par(
   mfrow = c(2, 3),
   mar = c(2, 2, 3, 2)
@@ -434,9 +497,12 @@ for (i in 1:nrow(person_examples)) {
 par(mfrow = c(1, 1))
 ```
 
+Across individual digits, several structural and geometric shapes overlap: Digits 1, 2, and 3 share a smoothly curved top arch; Digits 1 and 2 both feature a flat horizontal stroke at the base; and Digit 0 and Digit 4 incorporate enclosed loop structures.
+
 #### Person 18
 
 ```{r}
+#| include: false
 person_examples <- data$metadata %>%
   filter(
     person_id == 18,
@@ -448,6 +514,7 @@ person_examples <- data$metadata %>%
 ```
 
 ```{r}
+#| echo: false
 par(
   mfrow = c(2, 3),
   mar = c(2, 2, 3, 2)
@@ -466,3 +533,9 @@ for (i in 1:nrow(person_examples)) {
 
 par(mfrow = c(1, 1))
 ```
+
+Person 18's handwriting samples exhibit strong slanted characteristics and angular features: Digits 1, 2, 3, and 4 all feature pronounced rightward slants and sharp, linear strokes rather than smooth curves. Additionally, horizontal stroke alignments appear across multiple numbers, Digits 1 and 2 share flat horizontal base lines, while Digits 1, 2, and 4 incorporate sharp, nearly horizontal top or middle cross-strokes.
+
+### Overall Comments
+
+Visual analysis indicates noticeable variations in handwriting across different individuals. Even when writing the same digit, writers demonstrate distinct differences in shape, scale, stroke direction, and style. However, individual handwriting also displays consistent stylistic patterns; as shown in the previous section, a single writer often applies similar structural and graphical characteristics across different digits.
