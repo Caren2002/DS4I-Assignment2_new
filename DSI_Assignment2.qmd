@@ -1,5 +1,5 @@
 ---
-title: "DSI Assignment 2: Predicting writer ID from handwriting"
+title: "DSI Assignment 2: Predicting writer ID from handwriting CNN"
 format:
   html:
     toc: true
