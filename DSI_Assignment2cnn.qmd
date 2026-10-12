@@ -210,7 +210,7 @@ lin <- keras_model_sequential(input_shape = c(28, 28, 1)) %>%
 lin %>% compile(loss = "categorical_crossentropy",
                 optimizer = optimizer_adam(learning_rate = 0.001),
                 metrics = "accuracy")
-h_lin <- lin %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+h_lin <- lin %>% fit(x_train, y_train, epochs = 20, batch_size = 64,
                      validation_data = list(x_val, y_val), verbose = 0)
 tail(h_lin$metrics$val_accuracy, 1)
 ```
