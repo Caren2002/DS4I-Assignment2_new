@@ -214,6 +214,25 @@ h_lin <- lin %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
                      validation_data = list(x_val, y_val), verbose = 0)
 tail(h_lin$metrics$val_accuracy, 1)
 ```
+```{r}
+y_val_idx <- y_all[va]
+
+cmp <- sapply(c("tanh", "relu"), function(a) {
+  sapply(c(123, 1, 2), function(s) {          # three seeds each
+    set_random_seed(s)
+    m <- build_cnn(nu = 0, act = a)
+    h <- m %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+                   validation_data = list(x_val, y_val), verbose = 0)
+    p <- pmax(predict(m, x_val, verbose = 0), 1e-12)
+    c(val_acc = tail(h$metrics$val_accuracy, 1),
+      val_ce  = -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)])))
+  })
+})
+cmp
+
+
+```
+
 
 # 5. CNN models
 
@@ -257,7 +276,7 @@ y_val_idx <- y_all[va]
 val_ce <- sapply(nus, function(nu) {
   set_random_seed(123)
   m <- build_cnn(nu = nu)
-  m %>% fit(x_train, y_train, epochs = 10, batch_size = 64, verbose = 0)
+  m %>% fit(x_train, y_train, epochs = 20, batch_size = 64, verbose = 0)
   p <- predict(m, x_val, verbose = 0)
   p <- pmax(p, 1e-12)
   -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)]))   # CE without the penalty
@@ -291,9 +310,9 @@ summary(cnn_reg)
 ## 5.1 Train both (fixed number of epochs, validation on session 4)
 
 ```{r}
-h_base <- cnn_base %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+h_base <- cnn_base %>% fit(x_train, y_train, epochs = 20, batch_size = 64,
                            validation_data = list(x_val, y_val), verbose = 0)
-h_reg  <- cnn_reg %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+h_reg  <- cnn_reg %>% fit(x_train, y_train, epochs = 20, batch_size = 64,
                           validation_data = list(x_val, y_val), verbose = 0)
 
 plot(h_base)
@@ -333,3 +352,18 @@ What the output shows
 Per-writer accuracy varies enormously. It ranges from 0.00 to 1.00. One writer is recognised every time (1.00), three at 0.80, and two at 0.60. Two writers (labels 4 and 12) are never recognised, and several sit at 0.11-0.20.
 Digits are about equal. Accuracy per digit is 0.34, 0.43, 0.36, 0.44 and 0.35, with no digit clearly easier. With about 20 test cells per digit, I wouldn’t read anything into the differences.
 The labels are 0-19, not person_id. y_all was built as as.integer(person_f) - 1, so “writer 10” in this output is person_id 11. Add 1 when naming writers in the report, or relabel before printing.
+
+
+
+```{r}
+# Test loss and accuracy, as in the lecture
+final %>% evaluate(x_test, y_test, verbose = 0)
+
+# Confusion matrix (writers labelled by person_id)
+pred_id <- as.integer(levels(person_f))[res$hat + 1]
+conf <- table(true = meta$person_id[te], predicted = pred_id)
+conf
+
+# Easier to read: each row as proportions, with the diagonal being accuracy
+round(conf / rowSums(conf), 2)
+```
