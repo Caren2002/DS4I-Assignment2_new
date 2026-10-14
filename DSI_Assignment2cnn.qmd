@@ -211,17 +211,36 @@ lin <- keras_model_sequential(input_shape = c(28, 28, 1)) %>%
   layer_flatten() %>%
   layer_dense(n_people, activation = "softmax")
 lin %>% compile(loss = "categorical_crossentropy",
-                optimizer = optimizer_adam(learning_rate = 0.001),
+                optimizer = optimizer_adam(learning_rate = 0.00010),
                 metrics = "accuracy")
-h_lin <- lin %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+h_lin <- lin %>% fit(x_train, y_train, epochs = 20, batch_size = 64,
                      validation_data = list(x_val, y_val), verbose = 0)
 tail(h_lin$metrics$val_accuracy, 1)
+plot(h_lin$metrics$val_accuracy, type = "l", xlab = "epoch", ylab = "validation accuracy")
+plot(h_lin$metrics$val_loss, type = "l", xlab = "epoch", ylab = "validation cross-entropy")
+
+
+
+
+# set_random_seed(123)
+# lin2 <- keras_model_sequential(input_shape = c(28, 28, 1)) %>%
+#   layer_flatten() %>%
+#   layer_dense(n_people, activation = "softmax")
+# lin2 %>% compile(loss = "categorical_crossentropy",
+#                  optimizer = optimizer_adam(learning_rate = 0.00010),
+#                  metrics = "accuracy")
+# h2 <- lin2 %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+#                    validation_data = list(x_val, y_val), verbose = 0)
+# par(mfrow = c(1, 2))
+#plot(h2$metrics$val_accuracy, type = "l", xlab = "epoch", ylab = "validation accuracy")
+#plot(h2$metrics$val_loss, type = "l", xlab = "epoch", ylab = "validation cross-entropy")
+
 
 ```
 
 
 # 5. CNN models
-
+#Base model with defaults
 ```{r}
 compile_model <- function(model, lr) {
   model %>% compile(loss = "categorical_crossentropy",
@@ -232,7 +251,7 @@ compile_model <- function(model, lr) {
 
 # One architecture for both models: two conv layers (relu), max pooling,
 # flatten, softmax output. nu is the L2 weight penalty (nu = 0 means none).
-build_cnn <- function(nu = 0, act = "tanh", drop = 0.5, lr = 0.00003) {
+build_cnn <- function(nu = 0, act = "relu", drop = 0.2, lr = 0.01) {
   input <- layer_input(shape = c(28, 28, 1))
   output <- input %>%
     layer_conv_2d(filters = 16, kernel_size = c(3, 3),
@@ -253,11 +272,39 @@ set_random_seed(123)
 cnn_base <- build_cnn(nu = 0)
 summary(cnn_base)
 ```
+
 ```{r}
+# =====================================================================
+# CHUNK 0: updated build_cnn (replace base model with default values)
+# filters, kernel and pool are now arguments.
+# =====================================================================
+build_cnn <- function(nu = 0, act = "relu", drop = 0.2, lr = 0.01,
+                      filters = 16, kernel = 3, pool = 2) {
+  input <- layer_input(shape = c(28, 28, 1))
+  output <- input %>%
+    layer_conv_2d(filters = filters, kernel_size = c(kernel, kernel),
+                  kernel_regularizer = regularizer_l2(nu)) %>%
+    layer_activation(act) %>%
+    layer_dropout(rate = drop) %>%
+    layer_conv_2d(filters = filters, kernel_size = c(kernel, kernel), activation = act,
+                  kernel_regularizer = regularizer_l2(nu)) %>%
+    layer_max_pooling_2d(pool_size = c(pool, pool)) %>%
+    layer_flatten() %>%
+    layer_dense(units = n_people, activation = "softmax",
+                kernel_regularizer = regularizer_l2(nu))
+  compile_model(keras_model(input, output), lr = lr)
+}
+
+
+# =====================================================================
+# CHUNK 1 (STAGE 1): activation x learning rate x dropout, with nu = 0
+# 2 x 6 x 6 = 72 combinations, 3 seeds each = 216 fits
+# =====================================================================
+y_val_idx <- y_all[va]
 
 grid <- expand.grid(act  = c("tanh", "relu"),
-                    lr   = c(0.003, 0.001, 0.0003),
-                    drop = c(0.1, 0.2, 0.3, 0.5),
+                    lr   = c(0.003, 0.001, 0.0003, 0.0001, 0.00003, 0.00001),
+                    drop = c(0.1, 0.2, 0.3, 0.5, 0.6, 0.7),
                     stringsAsFactors = FALSE)
 seeds <- c(123, 1, 2)
 
@@ -279,92 +326,302 @@ grid_res <- do.call(rbind, lapply(seq_len(nrow(grid)), function(g) {
              train_acc = mean(r["train_acc", ]),
              val_acc   = mean(r["val_acc", ]),
              acc_sd    = sd(r["val_acc", ]),
-             val_ce    = mean(r["val_ce", ]))
+             val_ce    = mean(r["val_ce", ]),
+             ce_sd     = sd(r["val_ce", ]))
 }))
 
-# Discard collapsed runs (accuracy near chance), then rank by validation cross-entropy
-ok <- subset(grid_res, val_acc > 0.10)
-round_df <- function(d) { d[sapply(d, is.numeric)] <- round(d[sapply(d, is.numeric)], 3); d }
-round_df(head(ok[order(ok$val_ce), ], 8))
+# Drop collapsed runs (accuracy near chance), rank the rest by validation cross-entropy
+ok1 <- subset(grid_res, val_acc > 0.10)
+show <- ok1[order(ok1$val_ce), ]
+show$lr <- format(show$lr, scientific = FALSE)        # keeps small rates visible
+show[sapply(show, is.numeric)] <- round(show[sapply(show, is.numeric)], 3)
+head(show, 10)
 
-best <- ok[which.min(ok$val_ce), ]
-best
+top <- max(ok1$val_acc)
+for (tol in c(0.01, 0.02, 0.03, 0.04)) {
+  near <- subset(ok1, val_acc >= top - tol)
+  w <- near[which.min(near$val_ce), ]
+  cat("tol", tol, ":", w$act, format(w$lr, scientific = FALSE), "drop", w$drop,
+      " acc", round(w$val_acc, 3), " ce", round(w$val_ce, 3), "\n")
+}
+
+# equal-weight rank sum, for comparison
+#r <- rank(-ok1$val_acc) + rank(ok1$val_ce)
+#ok1[order(r, ok1$val_ce), ][1:5, c("act", "lr", "drop", "val_acc", "val_ce")]
 
 
 
-grid2 <- expand.grid(act = "tanh", lr = c(0.0003, 0.0001),
-                     drop = c(0.5, 0.6, 0.7), stringsAsFactors = FALSE)
-grid2_res <- do.call(rbind, lapply(seq_len(nrow(grid2)), function(g) {
-  r <- sapply(seeds, function(s) run_one(grid2$act[g], grid2$lr[g], grid2$drop[g], s))
-  data.frame(grid2[g, ], train_acc = mean(r["train_acc", ]),
-             val_acc = mean(r["val_acc", ]), acc_sd = sd(r["val_acc", ]),
-             val_ce = mean(r["val_ce", ]))
-}))
-round_df(grid2_res[order(grid2_res$val_ce), ])
-
-
-grid3 <- expand.grid(act = "tanh", lr = c(0.0001, 0.00003, 0.00001),
-                     drop = c(0.5, 0.7), stringsAsFactors = FALSE)
-grid3_res <- do.call(rbind, lapply(seq_len(nrow(grid3)), function(g) {
-  r <- sapply(seeds, function(s) run_one(grid3$act[g], grid3$lr[g], grid3$drop[g], s))
-  data.frame(grid3[g, ], train_acc = mean(r["train_acc", ]),
-             val_acc = mean(r["val_acc", ]), acc_sd = sd(r["val_acc", ]),
-             val_ce = mean(r["val_ce", ]), ce_sd = sd(r["val_ce", ]))
-}))
-out <- grid3_res[order(grid3_res$val_ce), ]
-out$lr <- format(out$lr, scientific = FALSE)     # so the rates stay visible
-out[sapply(out, is.numeric)] <- round(out[sapply(out, is.numeric)], 3)
-out
+r      <- rank(-ok1$val_acc) + rank(ok1$val_ce)
+ranked <- ok1[order(r, ok1$val_ce), ]
+best1  <- ranked[1, ]
+best1[, c("act", "lr", "drop", "val_acc", "val_ce")]
+str(best1$lr)       
 
 ```
 
-Checking epochs
 
 ```{r}
-n_ep <- 60
+
+# =====================================================================
+# CHUNK 2 (STAGE 2): filters x kernel x pool, on the Stage 1 winner
+# 3 x 2 x 2 = 12 combinations, 3 seeds each = 36 fits
+# =====================================================================
+tol_ce <- 0.30      # tolerance of 30% above best val_ce
+arch_grid <- expand.grid(filters = c(8, 16, 32),
+                         kernel  = c(3, 5),
+                         pool    = c(2, 3))
+
+run_arch <- function(filters, kernel, pool, seed) {
+  set_random_seed(seed)
+  m <- build_cnn(nu = 0, act = best1$act, lr = best1$lr, drop = best1$drop,
+                 filters = filters, kernel = kernel, pool = pool)
+  h <- m %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+                 validation_data = list(x_val, y_val), verbose = 0)
+  p <- pmax(predict(m, x_val, verbose = 0), 1e-12)
+  c(train_acc = tail(h$metrics$accuracy, 1),
+    val_acc   = tail(h$metrics$val_accuracy, 1),
+    val_ce    = -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)])))
+}
+
+arch_res <- do.call(rbind, lapply(seq_len(nrow(arch_grid)), function(g) {
+  cat("fit", g, "of", nrow(arch_grid), "\n")
+  r <- sapply(seeds, function(s)
+    run_arch(arch_grid$filters[g], arch_grid$kernel[g], arch_grid$pool[g], s))
+  data.frame(arch_grid[g, ],
+             train_acc = mean(r["train_acc", ]),
+             val_acc   = mean(r["val_acc", ]),
+             acc_sd    = sd(r["val_acc", ]),
+             val_ce    = mean(r["val_ce", ]),
+             ce_sd     = sd(r["val_ce", ]))
+}))
+
+# ok2 <- subset(arch_res, val_acc > 0.10)
+# show2 <- ok2[order(ok2$val_ce), ]
+# show2[sapply(show2, is.numeric)] <- round(show2[sapply(show2, is.numeric)], 3)
+# show2
+
+
+
+ok2   <- subset(arch_res, val_acc > 0.10)                     # drop collapsed runs
+near2 <- subset(ok2, val_ce <= min(ok2$val_ce) * (1 + tol_ce))
+near2 <- near2[order(-near2$val_acc, near2$val_ce), ]         # highest accuracy first
+
+show2 <- near2
+show2[sapply(show2, is.numeric)] <- round(show2[sapply(show2, is.numeric)], 3)
+show2                                                         # all candidates inside the tolerance
+
+best2 <- near2[1, ]
+best2
+
+
+
+
+
+```
+
+
+
+
+```{r}
+
+# grid <- expand.grid(act  = c("tanh", "relu"),
+#                     lr   = c(0.003, 0.001, 0.0003,0.0001, 0.00003, 0.00001),
+#                     drop = c(0.1, 0.2, 0.3, 0.5, 0.6, 0.7),
+#                     stringsAsFactors = FALSE)
+# seeds <- c(123, 1, 2)
+# 
+# run_one <- function(act, lr, drop, seed) {
+#   set_random_seed(seed)
+#   m <- build_cnn(nu = 0, act = act, lr = lr, drop = drop)
+#   h <- m %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+#                  validation_data = list(x_val, y_val), verbose = 0)
+#   p <- pmax(predict(m, x_val, verbose = 0), 1e-12)
+#   c(train_acc = tail(h$metrics$accuracy, 1),
+#     val_acc   = tail(h$metrics$val_accuracy, 1),
+#     val_ce    = -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)])))
+# }
+# 
+# grid_res <- do.call(rbind, lapply(seq_len(nrow(grid)), function(g) {
+#   cat("fit", g, "of", nrow(grid), "\n")
+#   r <- sapply(seeds, function(s) run_one(grid$act[g], grid$lr[g], grid$drop[g], s))
+#   data.frame(grid[g, ],
+#              train_acc = mean(r["train_acc", ]),
+#              val_acc   = mean(r["val_acc", ]),
+#              acc_sd    = sd(r["val_acc", ]),
+#              val_ce    = mean(r["val_ce", ]))
+# }))
+# 
+# # Discard collapsed runs (accuracy near chance), then rank by validation cross-entropy
+# ok <- subset(grid_res, val_acc > 0.10)
+# round_df <- function(d) { d[sapply(d, is.numeric)] <- round(d[sapply(d, is.numeric)], 3); d }
+# round_df(head(ok[order(ok$val_ce), ], 8))
+# 
+# best <- ok[which.min(ok$val_ce), ]
+# best
+# 
+# 
+# 
+# grid2 <- expand.grid(act = "tanh", lr = c(0.0003, 0.0001),
+#                      drop = c(0.5, 0.6, 0.7), stringsAsFactors = FALSE)
+# grid2_res <- do.call(rbind, lapply(seq_len(nrow(grid2)), function(g) {
+#   r <- sapply(seeds, function(s) run_one(grid2$act[g], grid2$lr[g], grid2$drop[g], s))
+#   data.frame(grid2[g, ], train_acc = mean(r["train_acc", ]),
+#              val_acc = mean(r["val_acc", ]), acc_sd = sd(r["val_acc", ]),
+#              val_ce = mean(r["val_ce", ]))
+# }))
+# round_df(grid2_res[order(grid2_res$val_ce), ])
+# 
+# 
+# grid3 <- expand.grid(act = "tanh", lr = c(0.0001, 0.00003, 0.00001),
+#                      drop = c(0.5, 0.7), stringsAsFactors = FALSE)
+# grid3_res <- do.call(rbind, lapply(seq_len(nrow(grid3)), function(g) {
+#   r <- sapply(seeds, function(s) run_one(grid3$act[g], grid3$lr[g], grid3$drop[g], s))
+#   data.frame(grid3[g, ], train_acc = mean(r["train_acc", ]),
+#              val_acc = mean(r["val_acc", ]), acc_sd = sd(r["val_acc", ]),
+#              val_ce = mean(r["val_ce", ]), ce_sd = sd(r["val_ce", ]))
+# }))
+# out <- grid3_res[order(grid3_res$val_ce), ]
+# out$lr <- format(out$lr, scientific = FALSE)     # so the rates stay visible
+# out[sapply(out, is.numeric)] <- round(out[sapply(out, is.numeric)], 3)
+# out
+
+```
+
+Checking epochs on the best model based on tuning
+
+```{r}
+nu_sel <- 0          # set to the 0 for now
+n_ep   <- 60
+
 curves <- lapply(seeds, function(s) {
   set_random_seed(s)
-  m <- build_cnn(nu = 0, act = "tanh", lr = 0.00003, drop = 0.5)
-  h <- m %>% fit(x_train, y_train, epochs = n_ep, batch_size = 64,
-                 validation_data = list(x_val, y_val), verbose = 0)
-  cbind(train_acc = h$metrics$accuracy, val_acc = h$metrics$val_accuracy,
-        val_ce = h$metrics$val_loss)
+  m <- build_cnn(nu = nu_sel, act = best1$act, lr = best1$lr, drop = best1$drop,
+                 filters = best2$filters, kernel = best2$kernel, pool = best2$pool)
+  out <- matrix(NA, n_ep, 3,
+                dimnames = list(NULL, c("train_acc", "val_acc", "val_ce")))
+  for (e in 1:n_ep) {
+    h <- m %>% fit(x_train, y_train, epochs = 1, batch_size = 64, verbose = 0)
+    p <- pmax(predict(m, x_val, verbose = 0), 1e-12)
+    out[e, ] <- c(h$metrics$accuracy,
+                  mean(max.col(p) - 1 == y_val_idx),
+                  -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)])))
+  }
+  out
 })
 avg <- Reduce(`+`, curves) / length(curves)
 
+# Same trade-off rule as the other stages: among epochs whose cross-entropy is within
+# the tolerance of the minimum, take the one with the highest validation accuracy.
+if (!exists("tol_ce")) tol_ce <- 0.30
+e_ce     <- which.min(avg[, "val_ce"])
+ok_ep    <- which(avg[, "val_ce"] <= avg[e_ce, "val_ce"] * (1 + tol_ce))
+n_epochs <- ok_ep[which.max(avg[ok_ep, "val_acc"])]
+
 par(mfrow = c(1, 2))
 matplot(avg[, c("train_acc", "val_acc")], type = "l", lty = 1, lwd = 2,
-        xlab = "epoch", ylab = "accuracy"); legend("bottomright", c("train", "val"), col = 1:2, lty = 1)
+        xlab = "epoch", ylab = "accuracy")
+legend("bottomright", c("train", "val"), col = 1:2, lty = 1)
+abline(v = n_epochs, lty = 2)
 plot(avg[, "val_ce"], type = "l", lwd = 2, xlab = "epoch", ylab = "validation cross-entropy")
-which.min(avg[, "val_ce"])
+abline(v = c(e_ce, n_epochs), lty = 2)
+
+c(min_ce_epoch = e_ce, chosen_epochs = n_epochs)
 
 ```
 
 
 #choose nu by validation accuracy
+
 ```{r}
+n_epochs <- 10
 nus <- c(0, 1e-4, 1e-3, 3e-3, 1e-2, 3e-2, 1e-1, 3e-1)
 y_val_idx <- y_all[va]
-n_epochs <- 12
 
-val_ce <- sapply(nus, function(nu) {
-  set_random_seed(123)
-  m <- build_cnn(nu = nu)
-  m %>% fit(x_train, y_train, epochs = n_epochs, batch_size = 64, verbose = 0)
-  p <- predict(m, x_val, verbose = 0)
-  p <- pmax(p, 1e-12)
-  -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)]))   # CE without the penalty
-})
+run_nu <- function(nu, seed) {
+  set_random_seed(seed)
+  m <- build_cnn(nu = nu, act = best1$act, lr = best1$lr, drop = best1$drop,
+                 filters = best2$filters, kernel = best2$kernel, pool = best2$pool)
+  h <- m %>% fit(x_train, y_train, epochs = n_epochs, batch_size = 64, verbose = 0)
+  p <- pmax(predict(m, x_val, verbose = 0), 1e-12)            # CE computed without the penalty
+  c(train_acc = tail(h$metrics$accuracy, 1),
+    val_acc   = mean(max.col(p) - 1 == y_val_idx),
+    val_ce    = -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)])))
+}
 
-plot(val_ce ~ seq_along(nus), type = "b", pch = 16, xaxt = "n",
+nu_res <- do.call(rbind, lapply(nus, function(nu) {
+  cat("nu =", nu, "\n")
+  r <- sapply(seeds, function(s) run_nu(nu, s))
+  data.frame(nu = nu,
+             train_acc = mean(r["train_acc", ]),
+             val_acc   = mean(r["val_acc", ]),
+             acc_sd    = sd(r["val_acc", ]),
+             val_ce    = mean(r["val_ce", ]),
+             ce_sd     = sd(r["val_ce", ]))
+}))
+
+
+wh <- which.min(nu_res$val_ce)
+nu_final              <- nus[wh]                              # minimum validation CE
+nu_final_conservative <- nus[min(wh + 1, length(nus))]        # course's "next larger nu"
+nu_sel <- nu_final                                            # or nu_final_conservative
+
+nu_res[wh, ]                                                  # check accuracy and sd at the minimum
+c(best = nu_final, conservative = nu_final_conservative)
+
+show_nu <- nu_res
+show_nu[-1] <- round(show_nu[-1], 3)
+show_nu
+
+# ok_nu   <- subset(nu_res, val_acc > 0.10)
+# near_nu <- subset(ok_nu, val_ce <= min(ok_nu$val_ce) * (1 + tol_ce))
+# near_nu <- near_nu[order(-near_nu$val_acc, near_nu$val_ce), ]
+# 
+# show_nu <- nu_res
+# show_nu[-1] <- round(show_nu[-1], 3)
+# show_nu                                         # the full table
+# near_nu$nu                                      # the candidates inside the tolerance
+# 
+# best_nu <- near_nu[1, ]
+# nu_sel  <- best_nu$nu
+# nu_sel
+
+par(mfrow = c(1, 2))
+plot(nu_res$val_ce, type = "b", pch = 16, xaxt = "n",
      xlab = "nu", ylab = "validation cross-entropy")
 axis(1, at = seq_along(nus), labels = nus)
+abline(v = which(nus == nu_sel), lty = 2)
+plot(nu_res$val_acc, type = "b", pch = 16, xaxt = "n",
+     xlab = "nu", ylab = "validation accuracy")
+axis(1, at = seq_along(nus), labels = nus)
+abline(v = which(nus == nu_sel), lty = 2)
+```
 
-wh <- which.min(val_ce)
-nu_final <- nus[wh]
-nu_final_conservative <- nus[min(wh + 1, length(nus))]   # next, larger nu
-abline(v = c(wh, min(wh + 1, length(nus))), lty = 2)
-c(best = nu_final, conservative = nu_final_conservative)
+
+
+
+# ```{r}
+# nus <- c(0, 1e-4, 1e-3, 3e-3, 1e-2, 3e-2, 1e-1, 3e-1)
+# y_val_idx <- y_all[va]
+# n_epochs <- 10
+# 
+# val_ce <- sapply(nus, function(nu) {
+#   set_random_seed(123)
+#   m <- build_cnn(nu = nu)
+#   m %>% fit(x_train, y_train, epochs = n_epochs, batch_size = 64, verbose = 0)
+#   p <- predict(m, x_val, verbose = 0)
+#   p <- pmax(p, 1e-12)
+#   -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)]))   # CE without the penalty
+# })
+# 
+# plot(val_ce ~ seq_along(nus), type = "b", pch = 16, xaxt = "n",
+#      xlab = "nu", ylab = "validation cross-entropy")
+# axis(1, at = seq_along(nus), labels = nus)
+# 
+# wh <- which.min(val_ce)
+# nu_final <- nus[wh]
+# nu_final_conservative <- nus[min(wh + 1, length(nus))]   # next, larger nu
+# abline(v = c(wh, min(wh + 1, length(nus))), lty = 2)
+# c(best = nu_final, conservative = nu_final_conservative)
 ```
 
 ```{r}
@@ -410,18 +667,21 @@ c(best = nu_final, conservative = nu_final_conservative)
 #regularised mode
 
 ```{r}
-# Same architecture as cnn_base, plus an L2 weight penalty.
-nu_reg <- 0.1       # <- best validation accuracy aka lowest validation error  nu = 0 had the highest validation accuracy (0.446), but nu = 0.01 was within
-# about one point (0.436), which is inside the noise. Following the course's
-# "conservative" rule, we take the larger nu (simpler model) when validation
-# cannot separate the options.
+
+# Tuned model: settings chosen on the validation session (session 4).
+# act, lr, dropout from Stage 1 (best1) then filters, kernel, pool from Stage 2 (best2)
+
+nu_reg <- nu_final_conservative 
+#best validation accuracy and lowest validation error
 
 set_random_seed(123)
-cnn_reg <- build_cnn(nu = nu_reg)
+cnn_reg <- build_cnn(nu = nu_reg,
+                     act = best1$act, lr = best1$lr, drop = best1$drop,
+                     filters = best2$filters, kernel = best2$kernel, pool = best2$pool)
 summary(cnn_reg)
 
-
 ```
+
 ## 5.1 Train both (fixed number of epochs, validation on session 4)
 
 ```{r}
