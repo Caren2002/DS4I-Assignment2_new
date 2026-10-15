@@ -5,7 +5,9 @@ format:
     toc: true
     embed-resources: true
 ---
+## Aim
 
+The task is to predict which of 20 writers produced a handwritten digit (0-4), and to judge the model on a recording session it has not seen.
 ```{r setup}
 #| warning: false
 library(keras3)
@@ -28,7 +30,12 @@ range(data$images)                     # 0-255, so we scale by 255
 head(meta)
 table(meta$person_id, meta$session)    # 250 images per writer per session
 ```
+The data contain 25,000 grayscale images of 28 x 28 pixels (one colour channel), described as fully synthetic handwritten digits 0-4. Pixel values run from 0 to 255, so they are divided by 255 before modelling. The metadata give, for every image, the writer (`person_id`, 20 writers), the digit (0-4), the recording session (1-5) and the replicate number within that cell.
 
+The table shows exactly 250 images for every writer in every session. The design is therefore fully balanced: each writer wrote 5 digits x 50 replicates in each of 5 sessions (20 x 5 x 5 x 50 = 25,000). Two consequences matter for the rest of the analysis:
+
+- The 50 replicates of one digit by one writer in one session are near-duplicates, so the number of independent observations is far smaller than 25,000. This is why the data are split by session and not by image.
+- The images are simulated, so the results describe this data set and may not carry over to real handwriting.
 # 2. Exploratory analysis
 
 ## 2.1 One digit, four writers, five sessions
@@ -45,6 +52,13 @@ for (p in 1:4) {
   }
 }
 ```
+The grid shows the digit 2 written by four writers (rows) in each of the five sessions (columns), using the first replicate of each cell. The dark grey background is only the colour scale of the plot.
+
+- **Writers differ in size, width and slant.** Writer 3 writes a visibly smaller 2 than the others. Writer 4's 2 is wide and slanted and runs almost to the edges of the image. Writers 1 and 2 are in between, with writer 2 more upright and narrow.
+- **Each writer's sessions look alike overall.** The general shape, proportions and position of each writer's 2 are recognisable from one session to the next.
+- **The sessions still differ in small ways.** The digit shifts a little within the frame, the stroke thickness changes, and details such as the tail at the end of the base (writers 1 and 2) or the top curve (writer 1, sessions 4 and 5) vary between sessions. Session-to-session changes are small, but not zero.
+- **This is only an impression.** The grid shows 4 of the 20 writers, one digit and one replicate per cell, so it motivates the next sections and does not measure anything. Section 2.2 quantifies how much of the variation comes from writer and from session.
+
 
 ## 2.2 What varies: writer, session or digit?
 
@@ -77,62 +91,56 @@ for (v in c("h", "w", "cx", "cy")) {
           setNames(trimws(rownames(ss))))
 }
 ```
-Each row is one measurement taken on every image, and each column is a possible source of variation. The numbers are the percentage of that measurement’s total variation explained by each source, so every row adds to 100.
+For each of four simple measurements taken on every image, the table gives the percentage of its total variation explained by each source, so each row adds to 100. This section is descriptive and uses all five sessions; nothing here is used to choose a model. The percentages are shares of variance, not significance tests. Height and width come from a rough brightness cutoff (pixels above 0.3), so they are approximate. The design is balanced, so the order of the terms in the model does not change the shares.
 
-The four measurements
+**The four measurements**
 
-h: height of the digit in pixels
-w: width of the digit
-cx: horizontal position of the ink (left to right)
-cy: vertical position of the ink (top to bottom)
+- `h`: height of the digit in pixels
+- `w`: width of the digit
+- `cx`: horizontal position of the ink (left to right)
+- `cy`: vertical position of the ink (top to bottom)
 
-The five sources
+**The five sources**
 
-digit: variation because a 0 looks different from a 1, 2, 3 or 4
-person_id: variation because different writers write differently
-session: variation because of the recording session, the same for everyone
-person_id:session: variation because a particular writer wrote differently in a particular session
-Residuals: the leftover variation between replicates in the same writer-digit-session
+- `digit`: variation because a 0 looks different from a 1, 2, 3 or 4
+- `person_id`: variation because different writers write differently
+- `session`: variation because of the recording session, the same for everyone
+- `person_id:session`: variation because a particular writer wrote differently in a particular session
+- Residuals: everything the four terms do not capture. This is the variation between replicates of the same writer, digit and session, but it also contains any interaction involving digit (for example a writer who places a 1 differently from a 4), because those terms are not in the model.
 
-Reading each row
+**Reading each row**
 
-h (height): 62.9% is person. Writers differ mainly in how tall they write, and a writer’s height hardly changes between sessions (only 2.9%). Height is a stable signature.
-w (width): it’s split between digit (43.5%, since a 1 is narrow and a 0 is wide) and person (40.5%). Writers differ in width too, and again sessions add little (6.8%).
-cx (horizontal position): digit 31.6% and person 34.4%, so where a writer places the digit sideways is fairly consistent. Session × person is larger here (10.3%).
-cy (vertical position): this is the odd one. Person is only 10.3%, but person × session is 17.0% and residuals are 57.3%. A writer’s vertical placement shifts from session to session and from image to image, so it is a poor feature for identifying writers.
+- **h (height):** 62.9% is person. Writers differ mainly in how tall they write, and a writer's height hardly changes between sessions (person x session is only 2.9%). Height is a stable signature of the writer.
+- **w (width):** split between digit (43.5%, since a 1 is narrow and a 0 is wide) and person (40.5%). Writers differ in width too, and sessions add little (6.8%).
+- **cx (horizontal position):** digit 31.6% and person 34.4%, so where a writer places the digit sideways is fairly consistent. Person x session is larger here (10.3%).
+- **cy (vertical position):** person is only 10.3%, but person x session is 17.0% and the residual is 57.3%. Most of the variation in vertical position is not explained by writer, so it is a poor feature for identifying writers.
 
-What the table says overall
+**What the table says overall**
 
-The session column is under 1% everywhere. No session is shifted for everyone, so session 4 isn’t an unusual session. This supports treating sessions as interchangeable groupings.
-Person is large for height, width and horizontal position. Writers differ in measurable ways, and these differences hold across sessions.
-Person × session is small for height and width, larger for cx and cy. Handwriting shifts between sessions mostly in position, much less in size.
-Residuals show replicate noise. Large for cy (57%), small for w (9%).
-
+- The session column is under 1% for all four measurements, so no session is shifted for everyone on these measures, and session 4 does not look unusual on them. This supports treating sessions as interchangeable groupings, and the distance analysis in the next section points the same way.
+- Person is large for height, width and horizontal position: writers differ in measurable ways, and these differences hold across sessions.
+- Person x session is small for height and width and larger for cx and cy (10.3% and 17.0%), so a writer's handwriting shifts between sessions mostly in position and much less in size.
+- The residual is largest for vertical position (57.3%) and smallest for width (8.8%).
 
 
 ## 2.3 Do a writer's sessions look alike?
 
-Average image per writer x digit x session (sessions 1-4 only), then compare
-distances between cells.
-
-"how different do two handwriting samples look, depending on whether they come from the same writer or the same session?"
+The question is how different two handwriting samples look depending on whether they come from the same writer or the same session. For each writer x digit x session cell we average the 50 replicates into one image, then compare the average images of different cells. Only sessions 1-4 are used, so the test session stays unseen. Each digit is compared only with the same digit, and distances are Euclidean distances in pixel space.
 
 ```{r}
 dist_table <- function(M) {
   d4  <- meta$session %in% 1:4
   key <- with(meta[d4, ], paste(person_id, digit, session))
-  Cm  <- rowsum(M[d4, ], key) / 50
+  Cm  <- rowsum(M[d4, ], key) / 50          # average image of each writer x digit x session cell
   k   <- do.call(rbind, strsplit(rownames(Cm), " "))
-  info <- data.frame(p = k[,1], d = k[,2], s = k[,3])
-  #Splits the labels back into columns (writer, digit, session) so each average image can be identified.
+  info <- data.frame(p = k[,1], d = k[,2], s = k[,3])   # writer, digit, session of each cell
   sapply(0:4, function(dd) {
-    i <- which(info$d == dd)
-    D <- as.matrix(dist(Cm[i, ]))
+    i <- which(info$d == dd)                # one digit at a time: 20 writers x 4 sessions = 80 cells
+    D <- as.matrix(dist(Cm[i, ]))           # distance between every pair of cells
     a <- info[i, ]
-    #For each digit separately (so a 2 is only compared with a 2), pick that digit’s 80 cells (20 writers ×       4 sessions). dist() computes the Euclidean distance between every pair of average images, and D is the       resulting 80 × 80 table of distances.
-    up <- upper.tri(D)
-    sp <- outer(a$p, a$p, "==")
-    ss <- outer(a$s, a$s, "==")
+    up <- upper.tri(D)                      # count each pair once
+    sp <- outer(a$p, a$p, "==")             # TRUE if the pair has the same writer
+    ss <- outer(a$s, a$s, "==")             # TRUE if the pair has the same session
     c(same_writer_diff_session = mean(D[up & sp & !ss]),
       diff_writer_same_session = mean(D[up & !sp & ss]),
       diff_writer_diff_session = mean(D[up & !sp & !ss]))
@@ -143,23 +151,28 @@ colnames(dtab) <- paste("digit", 0:4)
 round(dtab, 2)
 round(dtab["same_writer_diff_session", ] / dtab["diff_writer_diff_session", ], 2)
 ```
-Distances are in pixel units, so the absolute numbers mean little. What matters is how the rows compare.
+The table has one column per digit and three rows; the last line gives the ratio of the first row to the third. Distances are in pixel units, so the absolute numbers mean little. What matters is how the rows compare.
 
-Same writer, different session (about 6.4-7.1) is smaller than different writer (about 7.9-8.8). So a writer’s handwriting is on average closer to their own other sessions than to other people’s. That’s the signal that makes any writer recognition possible.
-But only a bit smaller. The ratio is 0.80, 0.83, 0.81, 0.81 and 0.80. A writer’s average digit changes between sessions by about 80% of the distance to a different writer’s digit. The gap between “my own handwriting next week” and “someone else’s handwriting” is small.
-The ratio is almost the same for all five digits, so this isn’t a quirk of one digit.
-Rows 2 and 3 are practically identical (8.78 vs 8.79, and so on). Different writers are no closer to each other in the same session than in different sessions. So there’s no shared session effect: sessions don’t shift everyone in the same direction. That agrees with the variance table, where session explained under 1%, and it supports treating sessions as interchangeable and holding one out.
+- **Same writer, different session is smaller than different writer** (6.35-7.06 against 7.85-8.79). On average, a writer's average digit in one session is closer to their own average digit in another session than to other writers' digits. This is the signal behind accuracy that is well above chance.
+- **But only modestly smaller.** The ratio is 0.80, 0.83, 0.81, 0.81 and 0.80: a writer's average digit changes between sessions by about 80% of the distance to a different writer's digit. The gap between a writer's own sessions and other writers is small.
+- **The ratio is almost the same for all five digits**, so this is not a quirk of one digit.
+- **There is no shared session effect.** The second and third rows are practically identical (8.78 and 8.79, 7.85 and 7.85, and so on): different writers are no closer to each other within a session than across sessions. Sessions do not move all writers in the same direction. This agrees with the variance table, where the session main effect was under 1%, and it supports treating sessions as interchangeable groupings and holding one out.
+- **Caveats.** These are distances between averages of 50 replicates, which removes replicate noise, so single images are harder to tell apart than this suggests. Pixel distance is also sensitive to small shifts, so part of the same-writer distance may be position wobble and not a change of style (we did not test this). Finally, the ratio is an average over writers and hides large differences between them.
 
-
-A writer’s average digit changed between sessions by about 80% of the distance to another writer’s digit, so writer identity is only moderately more stable than session-to-session variation. Different writers were equally far apart within and between sessions, indicating no shared session effect.
+A new session of a writer therefore often resembles another writer's earlier sessions about as much as that writer's own, which is consistent with the moderate accuracy in section 6.
 
 
 
 
 # 3. Train / validation / test split (by session)
 
-Images within a writer-session are near-duplicates, so we split by session:
-sessions 1-3 train, session 4 validation, session 5 test (used once, at the end).
+Images within one writer's session are near-duplicates: the 50 replicates of a digit are almost identical, so a random split of images would put near-copies of the same sample in both the training and the test data and give an inflated score. We therefore split by recording session, which makes the test a genuinely new recording by a known writer:
+
+- **Training:** sessions 1-3 (15,000 images, 750 per writer)
+- **Validation:** session 4 (5,000 images, 250 per writer), used to choose the model settings
+- **Test:** session 5 (5,000 images, 250 per writer), used only for the final evaluation
+
+Every writer appears in all three sets, which is required because the model can only predict writers it was trained on (a closed population of 20 writers). Because the settings were chosen on the validation session, its scores are slightly optimistic, so the test session gives the figure we report.
 
 ```{r}
 tr <- meta$session %in% 1:3
@@ -182,7 +195,13 @@ dim(x_train); dim(x_val); dim(x_test)
 table(meta$person_id[tr])[1:3]     # 750 per writer
 table(meta$person_id[te])[1:3]     # 250 per writer
 ```
+The three sets have 15,000, 5,000 and 5,000 images, each 28 x 28 x 1, and the counts per writer are equal in every set. The labels are the writer ID recoded to 0-19 and one-hot encoded, with 20 columns, one per writer. The model predicts the writer whatever digit was written, so the digit is not used as an input or a label.
 
+Splitting by session has consequences for how the results should be read:
+
+- Training uses only three sessions per writer, so the model sees just three examples of how each writer varies between sessions.
+- Validation and test each consist of one session. Because each writer-digit cell holds 50 near-identical images, each set has about 100 independent cells (20 writers x 5 digits), so scores on one session are imprecise.
+- The split asks whether a writer can be recognised in a new recording. It does not test recognising a writer who was never in the training data.
 
 
 
@@ -196,51 +215,50 @@ centroid_acc <- function(train_idx, val_idx) {
   dv <- meta$digit[val_idx]
   for (d in 0:4) {
     it <- train_idx & meta$digit == d
-    Cd <- rowsum(X[it, ], meta$person_id[it]) / (sum(it) / n_people)   # mean image per writer
+    # mean image per writer (divisor = images per writer, equal in this balanced design)
+    Cd <- rowsum(X[it, ], meta$person_id[it]) / (sum(it) / n_people)
     iv <- which(dv == d)
     d2 <- outer(rowSums(Xv[iv, ]^2), rep(1, nrow(Cd))) - 2 * Xv[iv, ] %*% t(Cd) +
-          outer(rep(1, length(iv)), rowSums(Cd^2))
-    pred[iv] <- as.integer(rownames(Cd))[max.col(-d2)]
+          outer(rep(1, length(iv)), rowSums(Cd^2))      # squared distance to each template
+    pred[iv] <- as.integer(rownames(Cd))[max.col(-d2)]  # closest template = predicted writer
   }
   mean(pred == meta$person_id[val_idx])
 }
 centroid_acc(tr, va)
-set_random_seed(123)
+
 # Baseline 2: linear softmax on raw pixels (no hidden layer)
+set_random_seed(123)
 lin <- keras_model_sequential(input_shape = c(28, 28, 1)) %>%
   layer_flatten() %>%
   layer_dense(n_people, activation = "softmax")
 lin %>% compile(loss = "categorical_crossentropy",
-                optimizer = optimizer_adam(learning_rate = 0.00010),
+                optimizer = optimizer_adam(learning_rate = 0.0001),
                 metrics = "accuracy")
 h_lin <- lin %>% fit(x_train, y_train, epochs = 20, batch_size = 64,
                      validation_data = list(x_val, y_val), verbose = 0)
-tail(h_lin$metrics$val_accuracy, 1)
+
+# final validation accuracy and cross-entropy (no penalty, so val_loss is the cross-entropy)
+c(val_acc = tail(h_lin$metrics$val_accuracy, 1),
+  val_ce  = tail(h_lin$metrics$val_loss, 1))
+
+par(mfrow = c(1, 2))
 plot(h_lin$metrics$val_accuracy, type = "l", xlab = "epoch", ylab = "validation accuracy")
 plot(h_lin$metrics$val_loss, type = "l", xlab = "epoch", ylab = "validation cross-entropy")
-
-
-
-
-# set_random_seed(123)
-# lin2 <- keras_model_sequential(input_shape = c(28, 28, 1)) %>%
-#   layer_flatten() %>%
-#   layer_dense(n_people, activation = "softmax")
-# lin2 %>% compile(loss = "categorical_crossentropy",
-#                  optimizer = optimizer_adam(learning_rate = 0.00010),
-#                  metrics = "accuracy")
-# h2 <- lin2 %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
-#                    validation_data = list(x_val, y_val), verbose = 0)
-# par(mfrow = c(1, 2))
-#plot(h2$metrics$val_accuracy, type = "l", xlab = "epoch", ylab = "validation accuracy")
-#plot(h2$metrics$val_loss, type = "l", xlab = "epoch", ylab = "validation cross-entropy")
-
-
+par(mfrow = c(1, 1))
 ```
+The nearest-centroid classifier reached 45.6% accuracy on the validation session and the linear model 47.6% after 20 epochs (validation cross-entropy about 1.85), against 5% expected by chance with 20 writers. Both are far above chance, so writer identity is visible in the raw pixels even without any learned features.
 
+- **The two baselines are close to each other.** A method that learns nothing performs about as well as a linear model. The 2-point difference is well within noise, so neither can be called better.
+- **The linear model's curves are well behaved.** Validation accuracy rises quickly over the first five epochs and then slowly, and is still creeping up slightly at epoch 20. Validation cross-entropy falls from about 2.7 to a minimum of about 1.84 around epochs 14-17 and is flat after that. Twenty epochs is therefore a reasonable stopping point, and more epochs would add little. Because this was read off the validation curves, the baseline is lightly tuned on the validation session.
+- **Both baselines set the reference for the CNN.** If the CNN were no better than these, its extra complexity would not be justified. They are compared on the test session in section 6.
+- **The comparison is not like for like.** The CNN's settings were tuned on the validation session, so its validation score is optimistic, whereas the nearest centroid has nothing to tune and the linear model was only lightly tuned.
+- **Uncertainty:** each validation score rests on about 100 writer-digit cells, so differences of a few points between models are within noise.
 
 # 5. CNN models
-#Base model with defaults
+
+## 5.1 Model definition and the default CNN
+
+One function, `build_cnn()`, builds every CNN in this report: two convolutional layers, max pooling, flatten, and a softmax output with one unit per writer. Its arguments are the settings that are tuned later (activation, dropout rate, learning rate, number of filters, kernel size, pool size and the L2 penalty `nu`). The defaults are the lecture's CNN: ReLU, dropout 0.2, learning rate 0.01, 16 filters of 3 x 3, 2 x 2 max pooling and no penalty. The softmax output matches the course notes' recommendation for a categorical response, and the loss is categorical cross-entropy.
 ```{r}
 compile_model <- function(model, lr) {
   model %>% compile(loss = "categorical_crossentropy",
@@ -272,6 +290,22 @@ set_random_seed(123)
 cnn_base <- build_cnn(nu = 0)
 summary(cnn_base)
 ```
+The summary shows the default CNN, with 48,580 trainable parameters:
+
+- **Convolutional layer 1:** 16 filters of 3 x 3 on a 28 x 28 image give 26 x 26 x 16 feature maps (160 parameters: (3 x 3 + 1) x 16).
+- **Dropout (0.2):** applied once, after the first convolution, and active only during training.
+- **Convolutional layer 2:** 16 more filters of 3 x 3 give 24 x 24 x 16 maps (2,320 parameters: (3 x 3 x 16 + 1) x 16).
+- **Max pooling (2 x 2):** halves the maps to 12 x 12 x 16.
+- **Flatten:** unrolls them into a vector of 2,304 values.
+- **Dense layer with softmax:** 20 outputs, one probability per writer (46,100 parameters: 2,304 x 20 + 20). The predicted writer is the one with the highest probability.
+
+About 95% of the parameters sit in the final dense layer, which is wired to specific positions in the pooled maps, so it can memorise where strokes fell in the training sessions. The convolutional layers, which learn reusable stroke features, have only about 2,500 parameters between them. This is the main reason the default model is expected to overfit, and it motivates the regularisation and tuning in the following sections.
+
+## 5.2 Stage 1: activation, learning rate and dropout
+
+The first stage searches a grid of 72 combinations: two activation functions (tanh, ReLU), six learning rates (0.003 down to 0.00001) and six dropout rates (0.1 to 0.7). The penalty is switched off (`nu = 0`) and every model is trained for 10 epochs with batch size 64. Each combination is fitted with three random seeds (216 fits), and we record the average training accuracy, validation accuracy and validation cross-entropy, together with their standard deviation across seeds. The cross-entropy is computed by hand from the predicted probabilities, so it is not affected by any penalty term.
+
+Runs whose validation accuracy was close to chance (below 10%) are discarded. The remaining combinations are ranked on validation accuracy and on validation cross-entropy, the two ranks are added with equal weight, and the lowest total is chosen. The rule has no free parameter and prevents a combination from winning on one measure while doing badly on the other. It was fixed after a first look at the Stage 1 results, when it was clear that accuracy and cross-entropy preferred different learning rates, and before Stage 2 was run, so it is partly a judgement.
 
 ```{r}
 # =====================================================================
@@ -330,7 +364,7 @@ grid_res <- do.call(rbind, lapply(seq_len(nrow(grid)), function(g) {
              ce_sd     = sd(r["val_ce", ]))
 }))
 
-# Drop collapsed runs (accuracy near chance), rank the rest by validation cross-entropy
+# Drop collapsed runs (accuracy near chance)
 ok1 <- subset(grid_res, val_acc > 0.10)
 show <- ok1[order(ok1$val_ce), ]
 show$lr <- format(show$lr, scientific = FALSE)        # keeps small rates visible
@@ -345,9 +379,7 @@ for (tol in c(0.01, 0.02, 0.03, 0.04)) {
       " acc", round(w$val_acc, 3), " ce", round(w$val_ce, 3), "\n")
 }
 
-# equal-weight rank sum, for comparison
-#r <- rank(-ok1$val_acc) + rank(ok1$val_ce)
-#ok1[order(r, ok1$val_ce), ][1:5, c("act", "lr", "drop", "val_acc", "val_ce")]
+
 
 
 
@@ -358,6 +390,21 @@ best1[, c("act", "lr", "drop", "val_acc", "val_ce")]
 str(best1$lr)       
 
 ```
+
+The chosen configuration is **tanh, learning rate 0.0001, dropout 0.7**, with a mean validation accuracy of 59.15% and a validation cross-entropy of 1.89 over the three seeds.
+
+- **Two families of learning rates dominate.** At a learning rate of 0.00003, tanh models reached about 55-56% accuracy with the lowest cross-entropy in the grid (about 1.47-1.50). At 0.0001 they reached about 57-59% accuracy but with a higher cross-entropy (about 1.89-2.02). The very small rate (0.00001) under-trained: training accuracy was only about 50-60% and validation accuracy about 46%. Accuracy and cross-entropy therefore point to different learning rates, and the rank-sum rule settled the choice in favour of 0.0001.
+- **The top three are effectively tied.** Learning rate 0.0001 with dropout 0.7, 0.5 and 0.6 had accuracies of 59.1%, 59.2% and 59.1% and cross-entropies of 1.89, 1.95 and 1.93, differences smaller than the variation across seeds. Dropout had little effect in this range, and the rule's tie-break picked 0.7.
+- **Tanh and ReLU were similar on accuracy.** At the best learning rate for cross-entropy (0.00003), ReLU gave a similar accuracy (about 56%) but a higher cross-entropy (about 1.52-1.70, against 1.47-1.50 for tanh), so tanh was slightly better calibrated there.
+- **Limits of this stage.** Every model was trained for exactly 10 epochs, and the best number of epochs depends on the learning rate, so the comparison between learning rates is partly a comparison of how far each model has trained (this is checked for the chosen model in section 5.5). Dropout 0.7 is at the edge of the grid, and the effect of dropout was small, so we did not extend it. The accuracy of about 59% is optimistic, because this combination was selected from 72 on the same validation session.
+
+
+
+## 5.3 Stage 2: filters, kernel size and pool size
+
+With the activation (tanh), learning rate (0.0001) and dropout (0.7) from Stage 1 fixed, the second stage compares the size of the convolutional layers: 8, 16 or 32 filters per layer, 3 x 3 or 5 x 5 kernels, and 2 x 2 or 3 x 3 max pooling. That is 12 architectures, each fitted with three seeds (36 fits) for 10 epochs, with no penalty.
+
+Here the selection rule is a tolerance rule. We keep the architectures whose validation cross-entropy is within 30% of the lowest one, and among those choose the one with the highest validation accuracy. This puts accuracy first while excluding architectures that are much worse calibrated. The 30% was fixed before Stage 2 was run, but after the Stage 1 results had been seen, so it is partly a judgement.
 
 
 ```{r}
@@ -418,7 +465,11 @@ best2
 
 
 ```
+The chosen architecture is the one the lecture used: **16 filters, 3 x 3 kernels and 2 x 2 pooling**. It reached a mean validation accuracy of 59.1% (standard deviation 0.5 points across seeds) and a validation cross-entropy of 1.89, with a training accuracy of 97.9% (measured with dropout active, so it understates the real fit). These figures are identical to those of the Stage 1 winner, because it is the same configuration with the same seeds, which also confirms that the runs are reproducible.
 
+- **Changing the size of the convolutional layers did not improve on the default.** [Say how many of the other 11 architectures were inside the cross-entropy tolerance, and what the best of them scored, for example "the next best (32 filters, 3 x 3, pool 2) reached [..]% accuracy and a cross-entropy of [..]".]
+- **Differences between architectures are within the seed spread** [if true: the accuracies of the architectures inside the tolerance lay within about [..] points of each other, no larger than the standard deviation across seeds of 0.5-2.4 points], so the grid cannot separate them, and the default is chosen by the rule.
+- **Limits of this stage.** Dropout of 0.7 was chosen with the default architecture, and larger layers (more filters, or a smaller pool) have more parameters in the dense layer and might suit a different dropout rate. The staged search does not test such interactions. As before, the 59.1% is optimistic because the architecture was selected on the same validation session.
 
 
 
@@ -487,7 +538,11 @@ best2
 
 ```
 
-Checking epochs on the best model based on tuning
+## 5.4 Number of epochs for the chosen model
+
+Stages 1 and 2 trained every model for 10 epochs. Here the chosen configuration (tanh, learning rate 0.0001, dropout 0.7, 16 filters, 3 x 3 kernels, 2 x 2 pooling, no penalty) is trained for 60 epochs, one epoch at a time, with the three seeds, and the validation accuracy and cross-entropy are recorded after every epoch. The curves are averaged over the seeds.
+
+Accuracy and cross-entropy usually do not agree on when to stop, so the epoch is chosen with the same tolerance rule as in Stage 2: among the epochs whose cross-entropy is within 30% of its minimum, take the one with the highest validation accuracy. The check is run without a penalty, because the penalty is searched afterwards.
 
 ```{r}
 nu_sel <- 0          # set to the 0 for now
@@ -527,10 +582,28 @@ abline(v = c(e_ce, n_epochs), lty = 2)
 
 c(min_ce_epoch = e_ce, chosen_epochs = n_epochs)
 
+round(avg[c(e_ce, n_epochs), ], 3)               # epoch of minimum CE, and the chosen epoch
+which.max(avg[, "val_acc"])                      # epoch of highest validation accuracy
+round(avg[which.max(avg[, "val_acc"]), ], 3)
+round(avg[n_ep, ], 3)                            # after 60 epochs
+
 ```
+The validation cross-entropy is lowest after **4 epochs** ([..]) and then rises as the model starts to overfit, to [..] after 60 epochs. The rule chose **10 epochs**, where the cross-entropy is [..] (within 30% of the minimum) and the validation accuracy is [..]%, against [..]% at epoch 4. Training accuracy reaches about [..]% by epoch [..] while validation accuracy stays at [..]%, so the optimiser converges and the poor generalisation is not a failure to converge.
+
+- **Ten epochs is a compromise, not the cross-entropy minimum.** Stopping at epoch 4 would give slightly better calibrated probabilities, but lower accuracy. Ten is where accuracy is highest among the epochs that are still well calibrated.
+- **This matches the epoch count used in the earlier stages.** Stages 1 and 2 used 10 epochs for every model, so their comparisons were made at the chosen stopping point and do not need to be repeated.
+- **Limits.** The number of epochs was chosen from the validation curves, which is a form of early stopping and makes the validation scores slightly optimistic. It was also chosen without a penalty, and a penalised model usually overfits more slowly, so its best epoch may be later. The same 10 epochs are used for the penalty search and for every final model.
 
 
-#choose nu by validation accuracy
+
+
+## 5.5 L2 penalty (`nu`)
+
+The penalty adds `nu` times the sum of the squared weights to the loss, which shrinks the weights and limits how closely the model can fit the training sessions. It is the form of regularisation described in the course notes (a constraint on the sum of squared weights, written as a penalty). It is applied to the weights of both convolutional layers and the output layer, not to the biases.
+
+The penalty is searched over eight values from 0 to 0.3, with every other setting fixed at the values chosen above (tanh, learning rate 0.0001, dropout 0.7, 16 filters, 3 x 3 kernels, 2 x 2 pooling) and 10 epochs. Each value is fitted with three seeds. As in the course script, we find the value with the lowest validation cross-entropy, computed without the penalty term, and use the next larger value as the conservative choice. The minimum of a noisy curve is optimistic, so stepping towards more regularisation favours the simpler model.
+
+
 
 ```{r}
 n_epochs <- 10
@@ -561,42 +634,38 @@ nu_res <- do.call(rbind, lapply(nus, function(nu) {
 
 
 wh <- which.min(nu_res$val_ce)
-nu_final              <- nus[wh]                              # minimum validation CE
-nu_final_conservative <- nus[min(wh + 1, length(nus))]        # course's "next larger nu"
-nu_sel <- nu_final                                            # or nu_final_conservative
+nu_final              <- nus[wh]                          # minimum validation cross-entropy
+nu_final_conservative <- nus[min(wh + 1, length(nus))]    # the course's "next larger nu"
+c(minimum = nu_final, used = nu_final_conservative)
 
-nu_res[wh, ]                                                  # check accuracy and sd at the minimum
-c(best = nu_final, conservative = nu_final_conservative)
+if (wh == 1)           message("Minimum at nu = 0: no extra penalty helped.")
+if (wh == length(nus)) message("Minimum at the largest nu: the grid may be too small.")
 
 show_nu <- nu_res
 show_nu[-1] <- round(show_nu[-1], 3)
 show_nu
 
-# ok_nu   <- subset(nu_res, val_acc > 0.10)
-# near_nu <- subset(ok_nu, val_ce <= min(ok_nu$val_ce) * (1 + tol_ce))
-# near_nu <- near_nu[order(-near_nu$val_acc, near_nu$val_ce), ]
-# 
-# show_nu <- nu_res
-# show_nu[-1] <- round(show_nu[-1], 3)
-# show_nu                                         # the full table
-# near_nu$nu                                      # the candidates inside the tolerance
-# 
-# best_nu <- near_nu[1, ]
-# nu_sel  <- best_nu$nu
-# nu_sel
-
 par(mfrow = c(1, 2))
 plot(nu_res$val_ce, type = "b", pch = 16, xaxt = "n",
      xlab = "nu", ylab = "validation cross-entropy")
 axis(1, at = seq_along(nus), labels = nus)
-abline(v = which(nus == nu_sel), lty = 2)
+abline(v = which(nus == nu_final), lty = 2)               # dashed: minimum
+abline(v = which(nus == nu_final_conservative), lty = 1)  # solid: value used
 plot(nu_res$val_acc, type = "b", pch = 16, xaxt = "n",
      xlab = "nu", ylab = "validation accuracy")
 axis(1, at = seq_along(nus), labels = nus)
-abline(v = which(nus == nu_sel), lty = 2)
+abline(v = which(nus == nu_final), lty = 2)
+abline(v = which(nus == nu_final_conservative), lty = 1)
+par(mfrow = c(1, 1))
 ```
 
+The validation cross-entropy is U-shaped in `nu`. It falls from 1.89 without a penalty to a minimum of 1.39 at `nu` = 0.03, then rises to 1.45 at 0.1, and reaches 2.99 at 0.3. That last value is almost exactly the cross-entropy of guessing evenly among 20 writers (ln 20 = 3.0): with this penalty the model could not learn (mean validation accuracy 13.5%, with a standard deviation of 14.7 points across seeds, consistent with some seeds failing completely).
 
+- **The penalty mainly improves calibration.** Moving from no penalty to 0.1 lowers the validation cross-entropy from 1.89 to 1.45, far more than the spread across seeds (0.003 to 0.04). Validation accuracy rises by about 2 points (59.1% to 61.2%), more than the seed spread of 0.5 to 0.9 points but small compared with the change in cross-entropy.
+- **The penalty narrows the gap between training and validation.** Training accuracy falls from 97.9% to 86.2% at 0.1 while validation accuracy rises, so the train-validation gap shrinks from about 39 to about 25 points. The model is less able to memorise the training sessions.
+- **We use `nu` = 0.1 (the conservative value), not the minimum.** The minimum of the cross-entropy is at 0.03, and taking to account the variation we took the next one with a less complex model. The difference in cross-entropy between 0.03 and 0.1 (1.39 against 1.45) is larger than the seed spread, so 0.03 is slightly better on that measure. The accuracy difference between them (60.6% against 61.2%) is within noise, and 0.1 is more strongly regularised.
+- **0.1 is close to the point where the penalty becomes too strong.** The grid has no values between 0.1 and 0.3, so we do not know how close the collapse is. A finer grid there was not run.
+- **Limits.** The penalty was chosen at 10 epochs, a number selected without a penalty, and a penalised model overfits more slowly, so its best number of epochs may be larger. As with the other stages, the validation scores of the chosen setting are optimistic because it was selected on the same session.
 
 
 ```{r}
@@ -664,15 +733,17 @@ abline(v = which(nus == nu_sel), lty = 2)
 
 ```
 
-#regularised mode
+## 5.6 The tuned model
+
+The tuned CNN combines the settings chosen in the previous sections: tanh activation, learning rate 0.0001, dropout 0.7, 16 filters of 3 x 3, 2 x 2 max pooling, an L2 penalty of 0.1 and 10 epochs. The penalty is the conservative value from the search in section 5.5: the minimum validation cross-entropy was at 0.03, and the next larger value, 0.1, is used.
 
 ```{r}
 
 # Tuned model: settings chosen on the validation session (session 4).
-# act, lr, dropout from Stage 1 (best1) then filters, kernel, pool from Stage 2 (best2)
-
+# act, lr and dropout from Stage 1 (best1); filters, kernel and pool from Stage 2 (best2);
+# nu = the next larger value after the minimum validation cross-entropy
+# ("conservative" rule), from the search in section 5.5.
 nu_reg <- nu_final_conservative
-#best validation accuracy and lowest validation error
 
 set_random_seed(123)
 cnn_reg <- build_cnn(nu = nu_reg,
@@ -680,9 +751,31 @@ cnn_reg <- build_cnn(nu = nu_reg,
                      filters = best2$filters, kernel = best2$kernel, pool = best2$pool)
 summary(cnn_reg)
 
-```
+# The settings, which the summary does not show
+data.frame(model = c("cnn_base (default)", "cnn_reg (tuned)"),
+           act     = c("relu", best1$act),
+           lr      = c(0.01, best1$lr),
+           dropout = c(0.2, best1$drop),
+           filters = c(16, best2$filters),
+           kernel  = c(3, best2$kernel),
+           pool    = c(2, best2$pool),
+           nu      = c(0, nu_reg),
+           epochs  = c(n_epochs, n_epochs))
 
-## 5.1 Train both (fixed number of epochs, validation on session 4)
+```
+The summary is identical to that of the default CNN (section 5.1): two convolutional layers, max pooling, flatten and a 20-way softmax output, with 48,580 trainable parameters. The tuned model therefore has the **same architecture** as the default one. A summary does not show the activation function, the dropout rate, the learning rate or the penalty, so the table below it lists them. The two models differ in four settings, not one:
+
+- the activation function (tanh instead of ReLU),
+- the dropout rate (0.7 instead of 0.2),
+- the learning rate (0.0001 instead of 0.01),
+- the L2 penalty/nu (0.1 instead of none).
+
+Comparing the two models in the next section therefore measures the combined effect of tuning these four settings. It does not isolate the effect of the penalty, which would need a third model with the tuned settings and no penalty (the `nu = 0` row of the search in section 5.5 is close to that: validation accuracy 59.1% and cross-entropy 1.89, against 61.2% and 1.45 with the penalty).
+
+
+## 5.7 Training the final models
+
+The default CNN and the tuned CNN are each rebuilt from scratch with seed 123 and trained for 10 epochs with batch size 64, while being monitored on the validation session (session 4). These are the fitted models scored on the test session in section 6, and nothing is changed after that.
 
 ```{r}
 set_random_seed(123)
@@ -708,124 +801,129 @@ c(base_train = tail(h_base$metrics$accuracy, 1),
   reg_val    = tail(h_reg$metrics$val_accuracy, 1))
 ```
 
+
+After 10 epochs the two models behave very differently:
+
+| | Training accuracy | Validation accuracy | Gap |
+|---|---|---|---|
+| Default CNN | 99.4% | 44.8% | 55 points |
+| Tuned CNN | 86.0% | 60.4% | 26 points |
+
+- **The default CNN memorises the training sessions.** It is almost perfect on the three sessions it was trained on (99.4%) and reaches 44.8% on a new session, a gap of 55 points. This is the overfitting expected from a model with 48,580 parameters, 95% of them in the output layer, trained on only about 300 independent writer-digit-session cells.
+- **The tuned CNN fits the training sessions less closely and generalises better.** Its training accuracy is 86.0% (measured with dropout active, so it understates the real fit) and its validation accuracy is 60.4%, a gap of 26 points. Its validation cross-entropy is [..] against [..] for the default CNN, compared with 3.0 for guessing evenly.
+- **The improvement comes from four changes together** (activation, dropout, learning rate and the L2 penalty), because the two models have the same architecture. The three-seed search in section 5.5 gives a comparable figure for the tuned model: 61.2% validation accuracy and a cross-entropy of 1.45, against 59.1% and 1.89 without the penalty.
+- **These are single runs (seed 123).** Run-to-run variation in validation accuracy was about 0.5-1 point for the tuned configuration, so the 15.6-point difference between the models is much larger than that, though the figures for the default CNN have no such estimate.
+- **The validation score of the tuned model is optimistic.** Its settings were chosen from many candidates on this same session, whereas the default CNN's were not, so the fair comparison is on the test session in section 6.
+
+
+
+
 # 6. Final evaluation (session 5, used once)
 
 The final model is the tuned CNN (cnn_reg), fixed before looking at the test session. The default CNN and the two baselines are scored on the same session for comparison only. Nothing was changed after seeing these results.
 
 ```{r}
-final <- cnn_reg                       
-y_te_idx <- y_all[te]
+final    <- cnn_reg
+y_te_idx <- y_all[te]                       # model labels 0-19
+ids      <- as.integer(levels(person_f))    # person_id for each model label
+true_id  <- meta$person_id[te]
 
 model_acc <- function(model, x, y_idx) {
   p   <- pmax(predict(model, x, verbose = 0), 1e-12)
   hat <- max.col(p) - 1
   list(hat = hat,
        acc = mean(hat == y_idx),
-       ce  = -mean(log(p[cbind(seq_along(y_idx), y_idx + 1)])))
+       ce  = -mean(log(p[cbind(seq_along(y_idx), y_idx + 1)])))   # no penalty term
 }
 res      <- model_acc(final, x_test, y_te_idx)
 res_base <- model_acc(cnn_base, x_test, y_te_idx)
 
-# All models were trained on sessions 1-3 and are scored once on session 5
-data.frame(
-  model    = c("nearest centroid", "linear softmax", "cnn_base (defaults)", "cnn_reg (tuned, final)"),
-  test_acc = c(centroid_acc(tr, te),
-               unname(evaluate(lin, x_test, y_test, verbose = 0)$accuracy),
-               res_base$acc, res$acc),
+# all predictions as person_id
+pred_cnn  <- ids[res$hat + 1]
+pred_base <- ids[res_base$hat + 1]
+pred_lin  <- ids[max.col(predict(lin, x_test, verbose = 0))]
+
+# All models were trained on sessions 1-3 and are scored on session 5
+test_tab <- data.frame(
+  model    = c("nearest centroid", "linear softmax", "cnn_base (default)", "cnn_reg (tuned, final)"),
+  test_acc = c(centroid_acc(tr, te), mean(pred_lin == true_id), res_base$acc, res$acc),
   test_ce  = c(NA, NA, res_base$ce, res$ce))
-log(n_people)                          # CE of guessing evenly (about 3.0)
+test_tab[-1] <- round(test_tab[-1], 3)
+test_tab
+log(n_people)                               # cross-entropy of guessing evenly (about 3.0)
 
-# Per writer, labelled with person_id (not the 0-19 model labels)
-acc_writer <- tapply(res$hat == y_te_idx, y_te_idx, mean)
-names(acc_writer) <- levels(person_f)
-round(acc_writer, 2)
+# Accuracy per writer, labelled with person_id (not the 0-19 model labels)
+writer_acc <- function(pred) tapply(pred == true_id, true_id, mean)
+a_cnn  <- writer_acc(pred_cnn)
+a_base <- writer_acc(pred_base)
+a_lin  <- writer_acc(pred_lin)
+round(a_cnn, 2)
 
-# Per digit
-round(tapply(res$hat == y_te_idx, meta$digit[te], mean), 2)
+# Accuracy per digit
+round(tapply(pred_cnn == true_id, meta$digit[te], mean), 2)
 
 # Interval: resample writers, because images from one writer are not independent
 set.seed(1)
-quantile(replicate(2000, mean(sample(acc_writer, replace = TRUE))), c(0.025, 0.975))
+quantile(replicate(2000, mean(sample(a_cnn, replace = TRUE))), c(0.025, 0.975))
 
-# Confusion matrix and over-assigned writers
-pred_id <- as.integer(levels(person_f))[res$hat + 1]
-conf <- table(true      = factor(meta$person_id[te], levels = levels(person_f)),
-              predicted = factor(pred_id, levels = levels(person_f)))
-sort(colSums(conf), decreasing = TRUE)[1:5]      # a fair share is 250
-
-
-
-
-
-writer_acc <- function(pred_id) tapply(pred_id == meta$person_id[te], meta$person_id[te], mean)
-ids <- as.integer(levels(person_f))
-
-a_cnn  <- writer_acc(as.integer(levels(person_f))[res$hat + 1])
-a_base <- writer_acc(ids[max.col(predict(cnn_base, x_test, verbose = 0))])
-a_lin  <- writer_acc(ids[max.col(predict(lin,      x_test, verbose = 0))])
-
+# Paired comparison on the same writers: tuned CNN minus each other model
 paired <- function(a, b) {
   d <- a - b
   set.seed(1)
-  c(mean_diff = mean(d), quantile(replicate(2000, mean(sample(d, replace = TRUE))), c(0.025, 0.975)))
+  c(mean_diff = mean(d),
+    quantile(replicate(2000, mean(sample(d, replace = TRUE))), c(0.025, 0.975)))
 }
-rbind(vs_default_cnn = paired(a_cnn, a_base),
-      vs_linear      = paired(a_cnn, a_lin))
-
-
-
-
-
-
-
-
-
-# final <- cnn_reg    
-# 
-# model_acc <- function(model, x, y_idx) {
-#   hat <- max.col(predict(model, x, verbose = 0)) - 1
-#   list(hat = hat, acc = mean(hat == y_idx))
-# }
-# 
-# res <- model_acc(final, x_test, y_all[te])
-# res$acc
-# 
-# # Accuracy per writer (the spread matters more than the average)
-# round(tapply(res$hat == y_all[te], y_all[te], mean), 2)
-# 
-# # Accuracy per digit
-# round(tapply(res$hat == y_all[te], meta$digit[te], mean), 2)
+round(rbind(vs_default_cnn = paired(a_cnn, a_base),
+            vs_linear      = paired(a_cnn, a_lin)), 3)
 ```
+| Model | Test accuracy | Test cross-entropy |
+|---|---|---|
+| Nearest centroid | 47.3% | not computed |
+| Linear softmax | 43.6% | not computed |
+| Default CNN | 49.3% | 5.87 |
+| Tuned CNN (final model) | 55.0% | 1.39 |
+| Guessing evenly among 20 writers | 5.0% | 3.00 |
+
+Test session (session 5), 5,000 images, 250 per writer. Each figure comes from one trained model.
+
 ## What the output shows
 
-**Accuracy.** The tuned CNN identified the writer for 55% of the images in the held-out session, compared with 49% for the default CNN, 47% for nearest centroid and 44% for the linear model (5% expected by chance). A 95% interval for the tuned CNN, resampling writers, is 43% to 67%. Paired across writers, the tuned CNN scored 11.4 percentage points higher than the linear model (95% interval 4.1 to 18.9), so that difference is unlikely to be due to which writers were sampled. Its 5.7-point lead over the default CNN (interval −1.9 to 13.6) cannot be distinguished from zero. The nearest-centroid classifier was not tested formally. The linear baseline was not tuned, so part of its deficit reflects tuning effort and not the convolutional structure.
+**Accuracy.** The tuned CNN identified the writer for 55% of the images in the held-out session, compared with 49% for the default CNN, 47% for nearest centroid and 44% for the linear model (5% expected by chance). A 95% interval for the tuned CNN, resampling writers, is 43% to 67%. Paired across writers, the tuned CNN scored 11.4 percentage points higher than the linear model (95% interval 4.1 to 18.9), so that difference is unlikely to be due to which writers were sampled. Its 5.7-point lead over the default CNN (interval -1.9 to 13.6) cannot be distinguished from zero. The nearest-centroid classifier was not tested formally. The linear baseline was only lightly tuned (its learning rate and number of epochs were set from its own validation curves), so part of its deficit reflects tuning effort and not the convolutional structure.
 
 **Cross-entropy.** The tuned model's test cross-entropy was 1.39, below the 3.0 expected from guessing evenly, whereas the default CNN scored 5.87, about twice that value (one training run per model). The default model is therefore overconfident: its predictions are wrong about half the time, but it assigns high probability to its wrong answers. This is the clearest difference between the two CNNs.
 
-**Validation against test.** The untuned baselines changed by less than 3 points between validation and test (nearest centroid 0.456 to 0.473, linear model 0.460 to 0.436). The tuned CNN fell by 5.4 points (0.604 to 0.550). This is consistent with its settings having been selected on the validation session, which makes that score optimistic, and it is why we report the test-session result.
+**Validation against test.** The nearest-centroid classifier, which has nothing to tune, changed by under 2 points between validation and test (45.6% to 47.3%). The linear model, which was lightly tuned on the validation session, fell by 4 points (47.6% to 43.6%), and the tuned CNN by 5.4 points (60.4% to 55.0%), its settings having been selected from many candidates on the validation session. Validation scores of models tuned on the validation session are optimistic, which is why we report the test-session results. The drops are of similar size, and the figures are too imprecise (about 100 independent cells per session) to say whether tuning caused them.
 
-**Writers.** Accuracy ranged from 0% to 100%. Writers 7 and 18 were identified in every image, and writers 6, 8, 15 and 17 in 76–85% of their images. Writers 5 and 13 were never identified, and writers 10, 16 and 20 in fewer than 35%. Writers 5 and 13 were also the hardest for an earlier, differently configured model, which suggests the difficulty comes from the data and not from one model.
-
-**Errors.** The model over-assigns a few writers: writer 2 received 459 predictions, writer 7 received 398 and writer 8 received 376, against a fair share of 250. Many errors are specific pairs; for example, most of writer 10's images were labelled as writer 2, and most of writer 5's as writer 13. Errors come in blocks, because the 50 replicates in a writer-digit cell are near-identical and are usually classified the same way, so the effective sample size is about 100 cells and not 5,000 images.
+**Writers.** Accuracy ranged from 0% to 100%. Writers 7 and 18 were identified in every image, and writers 6, 8, 15 and 17 in 76-85% of their images. Writer 5 was never identified and writer 13 in only 1 of 250 images; writers 10, 16 and 20 were identified in fewer than 35%. Writers 5 and 13 were also the hardest for an earlier, differently configured model, which suggests the difficulty comes from the data and not from one model.
 
 **Digits.** Accuracy was between 50% and 59% for every digit, with no digit clearly easier. With about 20 test cells per digit, these differences are within noise.
 
-**Interpretation.** Writers differ in measurable ways (height, width and horizontal position), but a writer's average digit in a new session is only about 20% closer to their earlier sessions than to another writer's handwriting (distance ratio about 0.8). A new session therefore often resembles another writer's training data, which limits accuracy for every model.
+**Interpretation.** Writers differ in measurable ways (height, width and horizontal position), but a writer's average digit in a new session is only about 20% closer to their earlier sessions than to another writer's handwriting (distance ratio about 0.8). A new session therefore often resembles another writer's training data, which is consistent with the moderate accuracy of every model.
 
-**Process.** All model settings were chosen on the validation session (session 4) and fixed before the test session was scored. A test result from an earlier configuration was seen before the tuning was redone, and nothing was changed after the final results were produced.
+**Process.** All model settings were chosen on the validation session (session 4) and fixed before the test session was scored. A test result from an earlier configuration was seen before the tuning was redone, and nothing was changed after the final results were produced. Several models were scored on the test session for comparison, but none was used to choose a setting.
+
+**Limitations.**
+
+- Each session contains about 100 independent writer-digit cells, because the 50 replicates in a cell are near-identical, so validation and test scores are imprecise.
+- The settings were chosen in stages, which ignores interactions between them, and each stage is another look at the validation session, so the validation scores of the chosen model are optimistic.
+- The number of epochs was chosen from validation curves, which is a form of early stopping.
+- The comparisons between models rest on single training runs of each final model. The paired intervals reflect which writers were sampled, not variation between random starts.
+- The baselines received less tuning than the CNN.
+- Only one session was held out for validation and one for the test, so we cannot say how results vary between sessions.
 
 
 ```{r}
-# Test loss and accuracy, as in the lecture
-final %>% evaluate(x_test, y_test, verbose = 0)
-
-# Confusion matrix (writers labelled by person_id)
+# Confusion matrix (writers labelled by person_id, not the 0-19 model labels)
 pred_id <- as.integer(levels(person_f))[res$hat + 1]
-conf <- table(true = meta$person_id[te], predicted = pred_id)
+conf <- table(true      = factor(meta$person_id[te], levels = levels(person_f)),
+              predicted = factor(pred_id,            levels = levels(person_f)))
 conf
 
-# Easier to read: each row as proportions, with the diagonal being accuracy
+# Each row as proportions; the diagonal is each writer's accuracy
 round(conf / rowSums(conf), 2)
+
+# Predictions received by each writer; a fair share is 250 (5,000 images / 20 writers)
+sort(colSums(conf), decreasing = TRUE)[1:5]
 ```
 
 
