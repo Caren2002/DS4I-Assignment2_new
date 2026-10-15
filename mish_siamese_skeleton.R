@@ -87,7 +87,8 @@ train_pairs <- make_pairs(ids = train_ids, n = 12000)
 
 valid_pairs <- make_pairs(ids = valid_ids, n = 4000)
 
-test_pairs <- make_pairs(ids = test_ids, n = 4000)
+# will use more indepth test pairs, created later
+#test_pairs <- make_pairs(ids = test_ids, n = 4000)
 
 
 
@@ -131,9 +132,9 @@ all(data$metadata$digit[valid_pairs[, 1]] ==
       data$metadata$digit[valid_pairs[, 2]])
 
 
-test <- make_batch(test_pairs)
-all(data$metadata$digit[test_pairs[, 1]] == 
-      data$metadata$digit[test_pairs[, 2]])
+# will make more detailed test batch later
+#test <- make_batch(test_pairs)
+#all(data$metadata$digit[test_pairs[, 1]] ==  data$metadata$digit[test_pairs[, 2]])
 
 
 
@@ -557,7 +558,7 @@ grid_results_nu_lr_dr
 
 
 
-# Fit final model
+# Fit final model --------------------------------------------------------------
 # use tuned parameter values and activation function combinations
 # also use 6 epochs, since it stabilizes around here. 15 epochs unnecessary.
 
@@ -613,6 +614,7 @@ make_controlled_pairs <- function(ids, n, pair_type) {
       
     } else if (pair_type == "different_writer_different_session") {
       
+      # different session, therefore allow sessions 1 to 4 again
       comparison_ids <- which(person_id != person_i & digit == digit_i 
                               & session != session_i 
                               & session %in% c(1, 2, 3, 4))
@@ -683,7 +685,7 @@ true_same <- as.logical(test$y[, 1])
 predicted_same <- test_distance < threshold
 
 ## format results
-session_results <- lapply(unique(test_pair_type), function(s) {
+session_writer_results <- lapply(unique(test_pair_type), function(s) {
   
   keep <- test_pair_type == s
   
@@ -698,8 +700,8 @@ session_results <- lapply(unique(test_pair_type), function(s) {
 })
 
 
-session_results <- do.call(rbind, session_results)
-session_results
+session_writer_results <- do.call(rbind, session_writer_results)
+session_writer_results
 
 
 
@@ -709,7 +711,7 @@ session_type <- ifelse(session[test_pairs[, 1]] == session[test_pairs[, 2]],
 
 
 ##
-session_results2 <- lapply(unique(session_type), function(s) {
+session_results <- lapply(unique(session_type), function(s) {
   
   keep <- session_type == s
   
@@ -729,8 +731,8 @@ session_results2 <- lapply(unique(session_type), function(s) {
     balanced_accuracy = (sensitivity_s + specificity_s) / 2)
 })
 
-session_results2 <- do.call(rbind,session_results2)
-session_results2
+session_results <- do.call(rbind,session_results)
+session_results
 
 
 
