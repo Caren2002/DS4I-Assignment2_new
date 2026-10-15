@@ -291,103 +291,36 @@ In the image above we can see the that there are clear stylistic differences in 
 
 Next we will explore is if there is variation within a persons handwriting. To do this we will randomly select 3 people and we will compare their handwriting across the five different sessions. This particular section is important because later we will build a Siamese network that will compare whether two images were written by the same person or not. A preliminary analysis will visually help us determine if there are similarities within a persons handwriting.
 
-#### Person 1
-
 ```{r}
-#| include: false
-session_examples <- data$metadata %>%
-  filter(
-    person_id == 1,
-    digit == 0
-  ) %>%
-  group_by(session) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
+#| label: Digits in each session
 #| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
+d <- 0
+selected_persons <- c(1, 9, 18)
 
-for (i in 1:nrow(session_examples)) {
-  
-  image_id <- session_examples$image_id[i]
-  session <- session_examples$session[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Session", session)
-  )
+par(mfrow = c(length(selected_persons), 5), mar = c(0.5, 0.5, 1, 0.5))
+
+for (p in selected_persons) {
+  for (s in 1:5) {
+    # Find the index matching the person, digit, and session
+    matching_indices <- which(meta$person_id == p & meta$digit == d & meta$session == s)
+    
+    if (length(matching_indices) > 0) {
+      i <- matching_indices[1]
+      image(t(data$images[i,,,1])[, 28:1], axes = FALSE, col = gray.colors(256),
+            main = paste("Person", p, "| S", s))
+    } else {
+      # Plot an empty blank space if a specific combination is missing
+      plot.new()
+      title(main = paste("Person", p, "| S", s))
+    }
+  }
 }
 
+# Reset plotting parameters back to default
 par(mfrow = c(1, 1))
 ```
 
-First, we examine Person 1's handwriting for the digit '0' across five sessions. Visually, the digits display consistent stylistic characteristics; while maintaining an overall rounded shape, they feature a noticeably flattened, vertical edge along the left side.
-
-#### Person 9
-
-```{r}
-#| include: false
-session_examples <- data$metadata %>%
-  filter(
-    person_id == 9,
-    digit == 0
-  ) %>%
-  group_by(session) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
-#| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
-
-for (i in 1:nrow(session_examples)) {
-  
-  image_id <- session_examples$image_id[i]
-  session <- session_examples$session[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Session", session)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-Finally, we examine Person 9's handwriting for the digit '0' across five sessions. Visually, the digits display consistent stylistic characteristics. Person 9's writes their '0's with a rounded shape. The digits are relatively centered in the image.
-
-#### Person 18
-
-```{r}
-#| include: false 
-session_examples <- data$metadata %>%   
-  filter(     person_id == 18,     digit == 0   ) %>%   
-  group_by(session) %>%   
-  slice_sample(n = 1) %>%   
-  ungroup()
-```
-
-```{r}
-#| echo: false 
-par(   mfrow = c(2, 3),   mar = c(2, 2, 3, 2) )  
-for (i in 1:nrow(session_examples)) {      
-  image_id <- session_examples$image_id[i]   
-  session <- session_examples$session[i]      
-  display_image(     data$images[image_id,,,],     
-                     paste("Session", session)   ) } 
-par(mfrow = c(1, 1))
-```
-
-We now examine Person 18's handwriting for the digit '0' across five sessions. A visually inspection shows the digits display consistent stylistic characteristics. The digits are all elongated and have an oval shape. Directionally, the '0' are tilted to the right.
+A visual examination of handwriting for the digit '0' across five sessions reveals distinct, highly consistent stylistic characteristics within individual writers. Person 1 consistently produces a rounded digit featuring a noticeably flattened, vertical edge along the left side. In contrast, Person 9 exhibits a centered, overall rounded digit structure across all sessions. Finally, Person 18 displays an elongated, oval-shaped digit that is systematically tilted to the right. Despite slight session-to-session variations, each writer maintains a clear, unique visual signature across all five sessions.
 
 ### Variation across digits for one person
 
@@ -395,118 +328,38 @@ Finally, we will assess the within person variation of the different digits. The
 
 For this section we will use the same three people from the previous section. We will keep the session constant and we will assess them on session one.
 
-#### Person 1
-
-```{r}
-#| include: false
-person_examples <- data$metadata %>%
-  filter(
-    person_id == 1,
-    session == 1
-  ) %>%
-  group_by(digit) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-
-
-```
-
 ```{r}
 #| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
+s <- 1
+selected_persons <- c(1, 9, 18)
 
-for (i in 1:nrow(person_examples)) {
-  
-  image_id <- person_examples$image_id[i]
-  digit <- person_examples$digit[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Digit", digit)
-  )
+# Set up a plotting grid: 3 rows (one for each person) and 5 columns (for the 5 sessions)
+par(mfrow = c(length(selected_persons), 5), mar = c(0.5, 0.5, 1, 0.5))
+
+for (p in selected_persons) {
+  for (d in 0:4) {
+    # Find the index matching the person, digit, and session
+    matching_indices <- which(meta$person_id == p & meta$digit == d & meta$session == s)
+    
+    if (length(matching_indices) > 0) {
+      i <- matching_indices[1]
+      image(t(data$images[i,,,1])[, 28:1], axes = FALSE, col = gray.colors(256),
+            main = paste("Person", p, "| S", s))
+    } else {
+      # Plot an empty blank space if a specific combination is missing
+      plot.new()
+      title(main = paste("Person", p, "| S", s))
+    }
+  }
 }
 
+# Reset plotting parameters back to default
 par(mfrow = c(1, 1))
 ```
 
-Visually, person 1's digits are centered on the image, and occupy similar proportions relative to the size of the images. Digits 1, 2, and 3 share a similar curved arc like top loop shape. Digits 1, and 2 have similar flat horizontal strokes at the base.
+Across all digits, a visual evaluation reveals distinctive structural and geometric features that define each individual's overall writing style. Person 1 produces centered digits occupying consistent relative proportions, where digits 1, 2, and 3 share a similar curved, arch-like top loop, and digits 1 and 2 feature flat horizontal base strokes. Similarly, Person 9 exhibits overlapping structural traits across digits, including a smoothly curved top arch across digits 1, 2, and 3, flat horizontal base strokes on digits 1 and 2, and enclosed loop structures within digits 0 and 4. In contrast, Person 18 displays strong slanted and angular characteristics, with digits 1 through 4 featuring pronounced rightward slants and sharp, linear strokes rather than smooth curves, alongside flat horizontal baselines (digits 1 and 2) and sharp horizontal cross-strokes across digits 1, 2, and 4.
 
-#### Person 9
-
-```{r}
-#| include: false
-person_examples <- data$metadata %>%
-  filter(
-    person_id == 9,
-    session == 1
-  ) %>%
-  group_by(digit) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
-#| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
-
-for (i in 1:nrow(person_examples)) {
-  
-  image_id <- person_examples$image_id[i]
-  digit <- person_examples$digit[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Digit", digit)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-Across individual digits, several structural and geometric shapes overlap: Digits 1, 2, and 3 share a smoothly curved top arch; Digits 1 and 2 both feature a flat horizontal stroke at the base; and Digit 0 and Digit 4 incorporate enclosed loop structures.
-
-#### Person 18
-
-```{r}
-#| include: false
-person_examples <- data$metadata %>%
-  filter(
-    person_id == 18,
-    session == 1
-  ) %>%
-  group_by(digit) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
-#| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
-
-for (i in 1:nrow(person_examples)) {
-  
-  image_id <- person_examples$image_id[i]
-  digit <- person_examples$digit[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Digit", digit)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-Person 18's handwriting samples exhibit strong slanted characteristics and angular features: Digits 1, 2, 3, and 4 all feature pronounced rightward slants and sharp, linear strokes rather than smooth curves. Additionally, horizontal stroke alignments appear across multiple numbers, Digits 1 and 2 share flat horizontal base lines, while Digits 1, 2, and 4 incorporate sharp, nearly horizontal top or middle cross-strokes.
+### Data Limitations and Potential Problems
 
 ## Convolutional Neural Network
 
