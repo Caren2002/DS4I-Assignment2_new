@@ -3,6 +3,7 @@ library(keras3)
 library(imager)
 library(keras3)
 library(pROC)
+library(reticulate)
 use_backend("tensorflow")
 
 data <- readRDS("handwriting.rds")
@@ -82,12 +83,15 @@ make_pairs <- function(ids, n, person_labels = person_id, digit_labels = digit) 
 
 
 
-
+set.seed(25)
 train_pairs <- make_pairs(ids = train_ids, n = 12000)
 
+set.seed(25)
 valid_pairs <- make_pairs(ids = valid_ids, n = 4000)
 
-test_pairs <- make_pairs(ids = test_ids, n = 4000)
+# will use more indepth test pairs, created later
+#set.seed(25)
+#test_pairs <- make_pairs(ids = test_ids, n = 4000)
 
 
 
@@ -131,9 +135,9 @@ all(data$metadata$digit[valid_pairs[, 1]] ==
       data$metadata$digit[valid_pairs[, 2]])
 
 
-test <- make_batch(test_pairs)
-all(data$metadata$digit[test_pairs[, 1]] == 
-      data$metadata$digit[test_pairs[, 2]])
+# will make more detailed test batch later
+#test <- make_batch(test_pairs)
+#all(data$metadata$digit[test_pairs[, 1]] ==  data$metadata$digit[test_pairs[, 2]])
 
 
 
@@ -169,7 +173,11 @@ build_siamese <- function(train, valid,
                           dropout_rate = 0.2,
                           n_epochs = 15,
                           lr = 1e-3,
-                          double_layer = TRUE) {
+                          double_layer = TRUE,
+                          seed = 8) {
+  
+  # set seed first -----------
+  set_random_seed(seed)
   
   # Build CNN ----------------------------
   
@@ -338,6 +346,7 @@ siamese_2_layer <- build_siamese(train = train, valid = valid, double_layer = TR
 
 # Hyperparameter grid ----------------------------
 
+# Overall grid not used for tuning
 overall_grid <- expand.grid(
   n_filters = c(16, 32, 64),
   kernel_size = c(3, 5, 7),
@@ -511,13 +520,14 @@ conservative_ind <- which.max(grid_filter_results$balanced_accuracy)
 grid_filter_results$balanced_accuracy[best_ind] <- best_val
 
 # pick filter size and number based on second best results
-n_filters <- grid_filter_results$n_filters[conservative_ind]
-kernel_size <- grid_filter_results$kernel_size[conservative_ind]
+n_filters <- grid_filter_results$n_filters[best_ind]
+kernel_size <- grid_filter_results$kernel_size[best_ind]
 
+# best combination: 16 filters of size 5x5
+# conservative combination: 32 filters of size 5x5
 
 
 '''
-## 
 
 grid_nu_lr_dr <- expand.grid(
   nu = c(0, 0.001, 0.01),
@@ -557,7 +567,7 @@ grid_results_nu_lr_dr
 
 
 
-# Fit final model
+# Fit final model --------------------------------------------------------------
 # use tuned parameter values and activation function combinations
 # also use 6 epochs, since it stabilizes around here. 15 epochs unnecessary.
 
@@ -613,6 +623,7 @@ make_controlled_pairs <- function(ids, n, pair_type) {
       
     } else if (pair_type == "different_writer_different_session") {
       
+      # different session, therefore allow sessions 1 to 4 again
       comparison_ids <- which(person_id != person_i & digit == digit_i 
                               & session != session_i 
                               & session %in% c(1, 2, 3, 4))
@@ -683,7 +694,7 @@ true_same <- as.logical(test$y[, 1])
 predicted_same <- test_distance < threshold
 
 ## format results
-session_results <- lapply(unique(test_pair_type), function(s) {
+session_writer_results <- lapply(unique(test_pair_type), function(s) {
   
   keep <- test_pair_type == s
   
@@ -698,8 +709,8 @@ session_results <- lapply(unique(test_pair_type), function(s) {
 })
 
 
-session_results <- do.call(rbind, session_results)
-session_results
+session_writer_results <- do.call(rbind, session_writer_results)
+session_writer_results
 
 
 
@@ -709,7 +720,7 @@ session_type <- ifelse(session[test_pairs[, 1]] == session[test_pairs[, 2]],
 
 
 ##
-session_results2 <- lapply(unique(session_type), function(s) {
+session_results <- lapply(unique(session_type), function(s) {
   
   keep <- session_type == s
   
@@ -729,8 +740,8 @@ session_results2 <- lapply(unique(session_type), function(s) {
     balanced_accuracy = (sensitivity_s + specificity_s) / 2)
 })
 
-session_results2 <- do.call(rbind,session_results2)
-session_results2
+session_results <- do.call(rbind,session_results)
+session_results
 
 
 
