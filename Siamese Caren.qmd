@@ -924,15 +924,15 @@ siamese_relu_tanh <- build_siamese(train = train, valid = valid, act_func1 = 're
 siamese_tanh_relu <- build_siamese(train = train, valid = valid, act_func1 = 'tanh', act_func2 = 'relu')
 siamese_tanh_tanh <- build_siamese(train = train, valid = valid, act_func1 = 'tanh', act_func2 = 'tanh')
 
-tuning_act_funcs_balanced_acc <- c(siamese_relu_relu$validation_result[2],
-                                   siamese_relu_tanh$validation_result[2],
-                                   siamese_tanh_relu$validation_result[2],
-                                   siamese_tanh_tanh$validation_result[2])
+tuning_act_funcs_balanced_acc <- c(as.numeric(siamese_relu_relu$validation_result[2]),
+                                   as.numeric(siamese_relu_tanh$validation_result[2]),
+                                   as.numeric(siamese_tanh_relu$validation_result[2]),
+                                   as.numeric(siamese_tanh_tanh$validation_result[2]))
 
-tuning_act_funcs_val_loss <- c(tail(siamese_relu_relu$history$metrics$val_loss, 1),
-                               tail(siamese_relu_tanh$history$metrics$val_loss, 1),
-                               tail(siamese_tanh_relu$history$metrics$val_loss, 1),
-                               tail(siamese_tanh_tanh$history$metrics$val_loss, 1))
+tuning_act_funcs_val_loss <- c(as.numeric(tail(siamese_relu_relu$history$metrics$val_loss, 1)),
+                               as.numeric(tail(siamese_relu_tanh$history$metrics$val_loss, 1)),
+                               as.numeric(tail(siamese_tanh_relu$history$metrics$val_loss, 1)),
+                               as.numeric(tail(siamese_tanh_tanh$history$metrics$val_loss, 1)))
 
 tuning_act_funcs_df <- as.data.frame(rbind(tuning_act_funcs_balanced_acc,
                                            tuning_act_funcs_val_loss))
