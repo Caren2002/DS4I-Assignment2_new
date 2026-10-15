@@ -3,6 +3,7 @@ library(keras3)
 library(imager)
 library(keras3)
 library(pROC)
+library(reticulate)
 use_backend("tensorflow")
 
 data <- readRDS("handwriting.rds")
@@ -82,12 +83,14 @@ make_pairs <- function(ids, n, person_labels = person_id, digit_labels = digit) 
 
 
 
-
+set.seed(25)
 train_pairs <- make_pairs(ids = train_ids, n = 12000)
 
+set.seed(25)
 valid_pairs <- make_pairs(ids = valid_ids, n = 4000)
 
 # will use more indepth test pairs, created later
+#set.seed(25)
 #test_pairs <- make_pairs(ids = test_ids, n = 4000)
 
 
@@ -170,7 +173,11 @@ build_siamese <- function(train, valid,
                           dropout_rate = 0.2,
                           n_epochs = 15,
                           lr = 1e-3,
-                          double_layer = TRUE) {
+                          double_layer = TRUE,
+                          seed = 8) {
+  
+  # set seed first -----------
+  set_random_seed(seed)
   
   # Build CNN ----------------------------
   
