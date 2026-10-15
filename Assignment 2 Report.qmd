@@ -359,7 +359,12 @@ par(mfrow = c(1, 1))
 
 Across all digits, a visual evaluation reveals distinctive structural and geometric features that define each individual's overall writing style. Person 1 produces centered digits occupying consistent relative proportions, where digits 1, 2, and 3 share a similar curved, arch-like top loop, and digits 1 and 2 feature flat horizontal base strokes. Similarly, Person 9 exhibits overlapping structural traits across digits, including a smoothly curved top arch across digits 1, 2, and 3, flat horizontal base strokes on digits 1 and 2, and enclosed loop structures within digits 0 and 4. In contrast, Person 18 displays strong slanted and angular characteristics, with digits 1 through 4 featuring pronounced rightward slants and sharp, linear strokes rather than smooth curves, alongside flat horizontal baselines (digits 1 and 2) and sharp horizontal cross-strokes across digits 1, 2, and 4.
 
+\newpage
+
 ## Convolutional Neural Network
+
+
+\newpage
 
 ## Siamese Neural Network
 
@@ -385,12 +390,12 @@ $$
 \text{Specificity}
 =
 \frac{\text{True Negatives}}
-{\text{True Negatives}+\text{False Positives}}
+{\text{True Negatives}+\text{False Positives}}.
 $$
 The distance threshold was chosen by maximizing balanced accuracy. All the calculated distances were candidates for the threshold. Furthermore, hyperparameters were tuned and chosen according to which values and combinations thereof that produced the model with the highest balanced accuracy.
 
 
-It was found that a model with 2 hidden layers performed considerably better than a model with 1. Thereafter, the activation functions on the hidden layers were optimized. The RelU and Tanh functions were considered. The 4 different combinations of these functions across the 2 layer network were evaluated. @tbl-act-fn_tune demonstrates that the best performing activation function combination was relu-tanh according to balanced accuracy (0.985). Though this does not correspond with the activation function combination chosen by validation loss (tanh-relu), the balanced accuracy metric is prioritized throughout tuning. This is because balanced accuracy provides a direct measure of classification performance by averaging sensitivity and specificity. This ensures that performance on both classes (similar and dissimilar image pairs) is considered equally, regardless of class prevalence. In contrast, validation contrastive loss measures how effectively the network learns the distance relationships between image pairs, but does not directly indicate classification accuracy. Therefore, balanced accuracy was considered a more appropriate criterion for tuning the model. 
+It was found that a model with 2 hidden layers (balanced accuracy = 0.966 and validation loss = 0.105) performed considerably better than a model with 1 (balanced accuracy = 0.773 and validation loss = 0.215). Thereafter, the activation functions on the hidden layers were optimized. The ReLU and Tanh functions were considered. The 4 different combinations of these functions across the 2 layer network were evaluated. @tbl-act-fn_tune demonstrates that the best performing activation function combination was relu-tanh according to balanced accuracy (0.985). Though this does not correspond with the activation function combination chosen by validation loss (tanh-relu), the balanced accuracy metric is prioritized throughout tuning. This is because balanced accuracy provides a direct measure of classification performance by averaging sensitivity and specificity. This ensures that performance on both classes (similar and dissimilar image pairs) is considered equally, regardless of class prevalence. In contrast, validation contrastive loss measures how effectively the network learns the distance relationships between image pairs, but does not directly indicate classification accuracy. Therefore, balanced accuracy was considered a more appropriate criterion for tuning the model.  
 
 ::: {#tbl-act-fn_tune}
 |                  | relu-relu| relu-tanh| tanh-relu| tanh-tanh|
@@ -400,6 +405,100 @@ It was found that a model with 2 hidden layers performed considerably better tha
 
 Table. Model performance using different combinations of the relu and tanh activation functions in the 2 hidden layers. The column names follow the naming convention of the first activation function name being applied to the first hidden layer, and the second activation function name being applied to the second hidden layer.
 :::
+
+
+
+Thereafter, the number of filters and their sizes were also tuned. Three numbers of filters were considered (16, 32 and 64) and 3 sizes of filters were considered (3x3, 5x5 and 7x7). Only square filters were considered for simplicity. @tbl-filter_tune shows that all combinations of the filter numbers and sizes achieve a validation balanced accuracy above 95%. The best performing model(balanced accuracy = 0.9912) was that with 16 filters, each of size 7x7. This time, this model also has the minimum validation loss (0.066). Although the model with 16 filters of size 5 appears to produce a model that performs equally as well (using balanced accuracy), it actually under-performs by $2 \times 10^{-4}$ compared to the chosen model combination (information neglected during rounding). However, it should be considered if the extra 0.02 % in accuracy is necessary and/or worth the resources needed to fit this model. In general, 64 filters of size 3x3 result in the worst relative performing model (lowest accuracy and highest error). Filter size appears to matter more than filter count - across all 3 filter counts, the small 3x3 filters generally lead to worse performance than 5x5 and 7x7 filters. This suggests larger filters capture more useful spatial patterns. As shown in @fig-filter-tuning, the larger kernel sizes generally achieve lower validation loss and higher accuracy. However, there is no general trend with increasing the number of filters.
+
+::: {#tbl-filter_tune}
+| n_filters| filter_size| balanced_accuracy| val_loss|
+|---------:|-----------:|-----------------:|--------:|
+|        16|           3|             0.985|    0.108|
+|        32|           3|             0.975|    0.106|
+|        64|           3|             0.957|    0.114|
+|        16|           5|             0.991|    0.073|
+|        32|           5|             0.987|    0.073|
+|        64|           5|             0.984|    0.075|
+|        16|           7|             0.991|    0.066|
+|        32|           7|             0.988|    0.069|
+|        64|           7|             0.989|    0.067|
+
+Table. The number of filters and their sizes were tuned. The model was run for 15 epochs and evaluated.
+:::
+
+
+```{r, echo=FALSE}
+grid_filter_results <- data.frame(
+  n_filters = c(16, 32, 64, 16, 32, 64, 16, 32, 64),
+  kernel_size = c(3, 3, 3, 5, 5, 5, 7, 7, 7),
+  balanced_accuracy = c(
+    0.9846830, 0.9748919, 0.9565790,
+    0.9909441, 0.9869481, 0.9839223,
+    0.9912047, 0.9884397, 0.9891961
+  ),
+  val_loss = c(
+    0.10761081, 0.10568654, 0.11368465,
+    0.07303262, 0.07323810, 0.07460424,
+    0.06596106, 0.06860974, 0.06733027
+  )
+)
+
+
+#par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
+
+kernel_sizes <- sort(unique(grid_filter_results$kernel_size))
+
+# Common y-axis limits for each metric
+acc_ylim <- range(grid_filter_results$balanced_accuracy, na.rm = TRUE)
+loss_ylim <- range(grid_filter_results$val_loss, na.rm = TRUE)
+```
+
+```{r fig-filter-tuning, fig.cap="Evaluating models that were fit using different filter (kernel) sizes and filter counts.", echo=FALSE}
+par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
+
+for (k in kernel_sizes) {
+  
+  dat <- grid_filter_results[
+    grid_filter_results$kernel_size == k, ]
+  
+  # Balanced accuracy (top row)
+  plot(
+    dat$n_filters, dat$balanced_accuracy,
+    type = "b", pch = 19,
+    xlab = "Number of filters",
+    ylab = "Balanced accuracy",
+    main = paste("Kernel size =", k),
+    ylim = acc_ylim,
+    xaxt = "n"
+  )
+  axis(1, at = dat$n_filters)
+}
+
+for (k in kernel_sizes) {
+  
+  dat <- grid_filter_results[
+    grid_filter_results$kernel_size == k, ]
+  
+  # Validation loss (bottom row)
+  plot(
+    dat$n_filters, dat$val_loss,
+    type = "b", pch = 19,
+    xlab = "Number of filters",
+    ylab = "Validation loss",
+    main = paste("Kernel size =", k),
+    ylim = loss_ylim,
+    xaxt = "n"
+  )
+  axis(1, at = dat$n_filters)
+}
+
+# Reset plotting layout
+par(mfrow = c(1, 1))
+
+
+
+```
+
 
 
 
