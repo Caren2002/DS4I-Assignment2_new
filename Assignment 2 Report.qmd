@@ -390,8 +390,16 @@ $$
 The distance threshold was chosen by maximizing balanced accuracy. All the calculated distances were candidates for the threshold. Furthermore, hyperparameters were tuned and chosen according to which values and combinations thereof that produced the model with the highest balanced accuracy.
 
 
-It was found that a model with 2 hidden layers performed considerably better than a model with 1. Thereafter, the activation functions on the hidden layers were optimized. The RelU and Tanh functions were considered. The 4 different combinations of these functions across the 2 layer network were evaluated. 
+It was found that a model with 2 hidden layers performed considerably better than a model with 1. Thereafter, the activation functions on the hidden layers were optimized. The RelU and Tanh functions were considered. The 4 different combinations of these functions across the 2 layer network were evaluated. @tbl-act-fn_tune demonstrates that the best performing activation function combination was relu-tanh according to balanced accuracy (0.985). Though this does not correspond with the activation function combination chosen by validation loss (tanh-relu), the balanced accuracy metric is prioritized throughout tuning. This is because balanced accuracy provides a direct measure of classification performance by averaging sensitivity and specificity. This ensures that performance on both classes (similar and dissimilar image pairs) is considered equally, regardless of class prevalence. In contrast, validation contrastive loss measures how effectively the network learns the distance relationships between image pairs, but does not directly indicate classification accuracy. Therefore, balanced accuracy was considered a more appropriate criterion for tuning the model. 
 
+::: {#tbl-act-fn_tune}
+|                  | relu-relu| relu-tanh| tanh-relu| tanh-tanh|
+|:-----------------|---------:|---------:|---------:|---------:|
+|Balanced accuracy |     0.966|     0.985|     0.969|     0.976|
+|Validation loss   |     0.106|     0.108|     0.105|     0.115|
+
+Table. Model performance using different combinations of the relu and tanh activation functions in the 2 hidden layers. The column names follow the naming convention of the first activation function name being applied to the first hidden layer, and the second activation function name being applied to the second hidden layer.
+:::
 
 
 
