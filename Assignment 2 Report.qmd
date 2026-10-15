@@ -6,61 +6,48 @@ editor: visual
 
 ## Introduction
 
+This study utilizes a dataset of 25,000 handwritten digits collected from 20 participants. Each individual provided 1,250 samples split across 5 sessions, with 50 samples recorded per session. Handwritten samples naturally exhibit intra-writer variability due to inherent personal differences and changing environmental conditions, such as time constraints during exams compared to relaxed note-taking. Nevertheless, underlying individual traits remain consistent, enabling writer identification.
+
+To investigate this data set, we address two core questions: first, whether we can identify a writer across different sessions, and second, whether we can determine if two arbitrary handwritten digits belong to the same person.
+
+To investigate the first research question, we will construct a Convolutional Neural Network (CNN) designed to classify handwritten digit images and assign them to one of the 20 individuals in the data set. To explore the second question, we will develop a Siamese neural network to determine whether two given images originate from the same writer or different writers. Finally, these two models will be evaluated and compared to establish which architecture yields superior performance in terms of accuracy and precision.
+
+## Data Splitting
+
+To build and evaluate our models, the dataset is partitioned into three distinct subsets: a training set used to construct the models, a validation set used to evaluate performance and tune hyperparameters, and a test set for final assessment. Rather than splitting randomly, the data is partitioned by session: **Sessions 1 to 3** form the training set, **Session 4** serves as the validation set, and **Session 5** comprises the test set.
+
+This session-based partitioning is intentional. Because the objective is to recognize each person's handwriting across different writing conditions, every participant must be represented in the training data. Furthermore, because both the Convolutional Neural Network (CNN) and the Siamese network are evaluated and compared directly against one another, maintaining a consistent data split ensures a fair performance comparison across both architectures.
+
 ## Explanatory Data Analysis
 
-This is the explanatory data section. In this section we will look at the explore the images. The goal of this section is to look at the images and try to establish if there are any differences between people, digits, and sessions.
+The aim of this section is to explore the handwriting images and metadata, compare examples across people, digits and sessions, and identify visible sources of variation and limitations of the simulated data.
 
 ```{r}
 #| include: false
-
-#| label: Read the Data 
-#| include: false 
-
-
-library(knitr)
 library(dplyr)
-data <- readRDS("handwriting.rds") 
-dim(data$images) # 25000 x 28 x 28 x 1 head(data$metadata) names(data) 
-```
+library(knitr)
 
-```{r}
-#| include: false
 data <- readRDS("handwriting.rds")
 meta <- data$metadata
-
-# Pixel matrix (one row per image) used by the baselines and EDA
 X <- matrix(data$images, nrow = 25000) / 255
-```
+images <- data$images
+set.seed(5073)
 
-```{r}
-#| include: false 
-unique(data$metadata$person_id) 
-unique(data$metadata$digit) 
-unique(data$metadata$session)
-```
+# One row per image; the image array is assumed to be ordered like metadata.
+stopifnot(dim(images)[1] == nrow(meta))
 
-```{r}
-#| include: false
-display_image <- function(image, title = "") {
-  
-  if (length(dim(image)) == 3) {
-    image <- image[, , 1]
-  }
-  
-  image(
-    t(apply(image, 2, rev)),
-    col = gray.colors(256),
-    axes = FALSE,
-    main = title
-  )
+display_image <- function(img, title = "") {
+  # Accept either a 28 x 28 matrix or a 28 x 28 x 1 array.
+  if (length(dim(img)) == 3) img <- img[, , 1]
+  image(t(img)[, ncol(img):1],
+        col = gray.colors(256), axes = FALSE, main = title)
 }
 ```
 
-### Dataset and Metadata Overview
+### Data set and Metadata Overview
 
 ```{r}
-#| eval: false
-#| include: false
+#| echo: false
 
 
 
@@ -115,29 +102,9 @@ kable(
 )
 ```
 
-```{r}
-#| include: false
-#This code displays a persons image 
-display_image(   data$images[1,,,],   "Example of image" )
-```
+The metadata identify the writer (`person_id`), the digit class (`digit`), and the recording session (`session`). These variables allow us to compare writers while holding the digit and session fixed, compare sessions for the same writer and digit, and compare different digits written by the same person.
 
-```{r}
-#| echo: false
-#| fig-height: 6
-d <- 2
-par(mfrow = c(4, 5), mar = c(0.5, 0.5, 1, 0.5))
-for (p in 1:4) {
-  for (s in 1:5) {
-    i <- which(meta$person_id == p & meta$digit == d & meta$session == s)[1]
-    image(t(data$images[i,,,1])[, 28:1], axes = FALSE, col = gray.colors(256),
-          main = paste("person", p, "session", s))
-  }
-}
-```
-
-## What varies: writer, session or digit?
-
-Simple summaries per image (height, width, centre of mass), then the share of variance explained by each factor.
+### Quantitative meta data analysis
 
 ```{r}
 #| echo: false
@@ -178,35 +145,25 @@ kable(res_df, col.names = c("Digit", "Person ID", "Session", "Person ID : Sessio
       caption = "Percentage of Variance Decomposition for Features")
 ```
 
-Each row is one measurement taken on every image, and each column is a possible source of variation. The numbers are the percentage of that measurement’s total variation explained by each source, so every row adds to 100.
+To evaluate the stability and discriminative power of spatial feature measurements across handwritten digit samples, a variance decomposition analysis was conducted. The analysis decomposes total variance across four spatial metrics into five distinct components:
 
-The four measurements
+-   **Feature Metrics:** Digit height ($h$), digit width ($w$), horizontal center of mass ($cx$), and vertical center of mass ($cy$).
 
-h: height of the digit in pixels
+-   **Variance Components:** Digit identity (**Digit**), writer identity (**Person ID**), baseline session main effect (**Session**), writer-by-session interaction (**Person ID : Session**), and random residual variation across replicates (**Residuals**).
 
-w: width of the digit
+#### Feature Interpretation
 
-cx: horizontal position of the ink (left to right)
+-   **Digit Height (**$h$): Writer identity (**Person ID**) accounts for the dominant share of variance at **62.9%**, whereas the interaction effect (**Person ID : Session**) accounts for only **2.9%**. This demonstrates that character height serves as a highly stable, writer-specific trait that remains robust across distinct recording sessions.
 
-cy: vertical position of the ink (top to bottom)
+-   **Digit Width (**$w$): Total variance is primarily partitioned between digit identity (**43.5%**) and writer identity (**40.5%**). Naturally, character width varies intrinsically across different digits (e.g., a digit '1' versus a digit '0'); nevertheless, substantial inter-writer variance persists with minimal session-induced fluctuation (**6.8%**).
 
-The five sources
+-   **Horizontal Position (**$cx$): Influenced moderately by both digit identity (**31.6%**) and writer identity (**34.4%**). Individual writers maintain consistent horizontal placement habits, though a moderate writer-by-session interaction (**10.3%**) indicates minor positional shifts across recording instances.
 
-digit: variation because a 0 looks different from a 1, 2, 3 or 4 : variation because different writers write differently session: variation because of the recording session, the same for everyone person_id:session: variation because a particular writer wrote differently in a particular session Residuals: the leftover variation between replicates in the same writer-digit-session
+-   **Vertical Position (**$cy$): Exhibits poor stability for writer discrimination. Main writer variance accounts for only **10.3%**, whereas writer-by-session interaction (**17.0%**) and residual noise (**57.3%**) dominate total variance. Consequently, vertical alignment varies substantially between sessions and individual stroke replicates, making it an unreliable feature for writer identification.
 
-Reading each row
+Overall, the variance decomposition yields several key insights regarding feature stability and writer discriminability. Main session effects contribute less than 1% across all spatial metrics (0.1%–0.6%), indicating that no single recording session exhibits global systematic bias or baseline shift, which supports the assumption that sessions represent comparable sampling conditions. Furthermore, inter-individual variance (**Person ID**) constitutes a major proportion of total variation for height, width, and horizontal positioning, confirming that individual writers possess measurable, repeatable handwriting characteristics that generalize across distinct sessions. Finally, handwriting variations between sessions manifest primarily as spatial positional shifts ($cx, cy$) rather than structural or dimensional resizing ($h, w$).
 
-h (height): 62.9% is person. Writers differ mainly in how tall they write, and a writer’s height hardly changes between sessions (only 2.9%). Height is a stable signature. w (width): it’s split between digit (43.5%, since a 1 is narrow and a 0 is wide) and person (40.5%). Writers differ in width too, and again sessions add little (6.8%). cx (horizontal position): digit 31.6% and person 34.4%, so where a writer places the digit sideways is fairly consistent. Session × person is larger here (10.3%). cy (vertical position): this is the odd one. Person is only 10.3%, but person × session is 17.0% and residuals are 57.3%. A writer’s vertical placement shifts from session to session and from image to image, so it is a poor feature for identifying writers.
-
-What the table says overall
-
-The session column is under 1% everywhere. No session is shifted for everyone, so session 4 isn’t an unusual session. This supports treating sessions as interchangeable groupings. Person is large for height, width and horizontal position. Writers differ in measurable ways, and these differences hold across sessions. Person × session is small for height and width, larger for cx and cy. Handwriting shifts between sessions mostly in position, much less in size. Residuals show replicate noise. Large for cy (57%), small for w (9%).
-
-## Do a writer's sessions look alike?
-
-Average image per writer x digit x session (sessions 1-4 only), then compare distances between cells.
-
-"how different do two handwriting samples look, depending on whether they come from the same writer or the same session?"
+#### Euclidean Distance Analysis
 
 ```{r}
 #| echo: false
@@ -247,13 +204,11 @@ kable(combined_matrix,
       caption = "Euclidean Distances and Ratios Across Digits (0 to 4)")
 ```
 
-Distances are in pixel units, so the absolute numbers mean little. What matters is how the rows compare.
+Because distances are measured in pixel units, relative comparisons across conditions are more informative than absolute values (see Table 2). Across all digits (0 to 4), the mean Euclidean distance for the same writer across different sessions ($6.35$–$7.06$ pixels) is consistently smaller than between different writers ($7.85$–$8.79$ pixels), establishing the core signal required for writer identification.
 
-Same writer, different session (about 6.4-7.1) is smaller than different writer (about 7.9-8.8). So a writer’s handwriting is on average closer to their own other sessions than to other people’s. That’s the signal that makes any writer recognition possible. But only a bit smaller. The ratio is 0.80, 0.83, 0.81, 0.81 and 0.80. A writer’s average digit changes between sessions by about 80% of the distance to a different writer’s digit. The gap between “my own handwriting next week” and “someone else’s handwriting” is small. The ratio is almost the same for all five digits, so this isn’t a quirk of one digit. Rows 2 and 3 are practically identical (8.78 vs 8.79, and so on). Different writers are no closer to each other in the same session than in different sessions. So there’s no shared session effect: sessions don’t shift everyone in the same direction. That agrees with the variance table, where session explained under 1%, and it supports treating sessions as interchangeable and holding one out.
+However, this distinction is moderate. The ratio of same-writer to different-writer distance ranges tightly between $0.80$ and $0.83$ across all digits, showing that session-to-session variation accounts for roughly $80\%$ of the distance to another writer's sample. Additionally, distances between different writers are virtually identical within the same session ($7.85$–$8.78$) and across different sessions ($7.85$–$8.79$). This confirms the absence of a shared session effect, directly supporting previous variance decomposition findings ($<1\%$ session variance) and validating the decision to hold out entire sessions for testing.
 
-A writer’s average digit changed between sessions by about 80% of the distance to another writer’s digit, so writer identity is only moderately more stable than session-to-session variation. Different writers were equally far apart within and between sessions, indicating no shared session effect.
-
-### Compare the variation between the people
+### Variation between people
 
 Firstly, we will compare all 20 peoples handwriting across one session. The main goal of this exercise is to check whether there are any visible variations among peoples handwriting within a particular session. The first image will compare the people writing the digit 0 in session 1.
 
@@ -273,7 +228,7 @@ people_examples <- data$metadata %>%
 #| echo: false
 par(
   mfrow = c(4, 5),
-  mar = c(1, 1, 2, 1)
+  mar = c(0.25, 0.25, 1, 0.5)
 )
 
 for (i in 1:nrow(people_examples)) {
@@ -312,7 +267,7 @@ people_examples_1 <- data$metadata %>%
 #| echo: false
 par(
   mfrow = c(4, 5),
-  mar = c(1, 1, 2, 1)
+  mar = c(0.25, 0.25, 1, 0.25)
 )
 
 
@@ -332,349 +287,79 @@ par(mfrow = c(1, 1))
 
 In the image above we can see the that there are clear stylistic differences in the peoples handwriting. A visual comparison shows that some of the digits are more elongated than others. There is a clear difference in the way person 3 and person 20 wrote the same digit. Out of all the people, person 18 wrote a digit that tilts most to the right.
 
-```{r}
-#| include: false
+### Variation across sessions for one person
 
-
-people_examples_2 <- data$metadata %>%
-  filter(
-    digit == 2,
-    session == 1
-  ) %>%
-  group_by(person_id) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
+Next we will explore is if there is variation within a persons handwriting. To do this we will randomly select 3 people and we will compare their handwriting across the five different sessions. This particular section is important because later we will build a Siamese network that will compare whether two images were written by the same person or not. A preliminary analysis will visually help us determine if there are similarities within a persons handwriting.
 
 ```{r}
-#| include: false
-par(
-  mfrow = c(4, 5),
-  mar = c(1, 1, 2, 1)
-)
-
-
-for (i in 1:nrow(people_examples_2)) {
-  
-  image_id <- people_examples_2$image_id[i]
-  person <- people_examples_2$person_id[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Person", person)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-```{r}
-#| include: false
-
-
-people_examples_3 <- data$metadata %>%
-  filter(
-    digit == 3,
-    session == 1
-  ) %>%
-  group_by(person_id) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
-#| include: false
-par(
-  mfrow = c(4, 5),
-  mar = c(1, 1, 2, 1)
-)
-
-
-for (i in 1:nrow(people_examples_3)) {
-  
-  image_id <- people_examples_3$image_id[i]
-  person <- people_examples_3$person_id[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Person", person)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-```{r}
-#| include: false
-people_examples_4 <- data$metadata %>%
-  filter(
-    digit == 4,
-    session == 1
-  ) %>%
-  group_by(person_id) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
-#| include: false
-par(
-  mfrow = c(4, 5),
-  mar = c(1, 1, 2, 1)
-)
-
-
-for (i in 1:nrow(people_examples_4)) {
-  
-  image_id <- people_examples_4$image_id[i]
-  person <- people_examples_4$person_id[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Person", person)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-### Comparing the digits within people
-
-The next thing we will explore is if there is variation within a persons handwriting. To do this we will randomly select 3 people and we will compare their handwriting across the five different sessions. This particular section is important because later we will build a Siamese network that will compare whether two images were written by the same person or not. A preliminary analysis will visually help us determine if there are similarities within a persons handwriting.
-
-#### Person 1
-
-```{r}
-#| include: false
-session_examples <- data$metadata %>%
-  filter(
-    person_id == 1,
-    digit == 0
-  ) %>%
-  group_by(session) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
+#| label: Digits in each session
 #| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
+d <- 0
+selected_persons <- c(1, 9, 18)
 
-for (i in 1:nrow(session_examples)) {
-  
-  image_id <- session_examples$image_id[i]
-  session <- session_examples$session[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Session", session)
-  )
+par(mfrow = c(length(selected_persons), 5), mar = c(0.5, 0.5, 1, 0.5))
+
+for (p in selected_persons) {
+  for (s in 1:5) {
+    # Find the index matching the person, digit, and session
+    matching_indices <- which(meta$person_id == p & meta$digit == d & meta$session == s)
+    
+    if (length(matching_indices) > 0) {
+      i <- matching_indices[1]
+      image(t(data$images[i,,,1])[, 28:1], axes = FALSE, col = gray.colors(256),
+            main = paste("Person", p, "| S", s))
+    } else {
+      # Plot an empty blank space if a specific combination is missing
+      plot.new()
+      title(main = paste("Person", p, "| S", s))
+    }
+  }
 }
 
+# Reset plotting parameters back to default
 par(mfrow = c(1, 1))
 ```
 
-First, we examine Person 1's handwriting for the digit '0' across five sessions. Visually, the digits display consistent stylistic characteristics; while maintaining an overall rounded shape, they feature a noticeably flattened, vertical edge along the left side.
+A visual examination of handwriting for the digit '0' across five sessions reveals distinct, highly consistent stylistic characteristics within individual writers. Person 1 consistently produces a rounded digit featuring a noticeably flattened, vertical edge along the left side. In contrast, Person 9 exhibits a centered, overall rounded digit structure across all sessions. Finally, Person 18 displays an elongated, oval-shaped digit that is systematically tilted to the right. Despite slight session-to-session variations, each writer maintains a clear, unique visual signature across all five sessions.
 
-#### Person 18
-
-```{r}
-#| include: false
-session_examples <- data$metadata %>%
-  filter(
-    person_id == 18,
-    digit == 0
-  ) %>%
-  group_by(session) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
-#| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
-
-for (i in 1:nrow(session_examples)) {
-  
-  image_id <- session_examples$image_id[i]
-  session <- session_examples$session[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Session", session)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-We now examine Person 18's handwriting for the digit '0' across five sessions. A visually inspection shows the digits display consistent stylistic characteristics. The digits are all elongated and have an oval shape. Directionally, the '0' are tilted to the right.
-
-#### Person 9
-
-```{r}
-#| include: false
-session_examples <- data$metadata %>%
-  filter(
-    person_id == 9,
-    digit == 0
-  ) %>%
-  group_by(session) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
-#| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
-
-for (i in 1:nrow(session_examples)) {
-  
-  image_id <- session_examples$image_id[i]
-  session <- session_examples$session[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Session", session)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-Finallly, we examine Person 9's handwriting for the digit '0' across five sessions. Visually, the digits display consistent stylistic characteristics. Person 9's writes their '0's with a rounded shape. The digits are relatively centered in the image.
-
-### Comparing the digits of the same person
+### Variation across digits for one person
 
 Finally, we will assess the within person variation of the different digits. The main goal of this is to assess whether there are similarities between a persons handwriting for different digits. This section is important because the Siamese and CNN networks will be tasked identifying similarities within the different digits.
 
 For this section we will use the same three people from the previous section. We will keep the session constant and we will assess them on session one.
 
-#### Person 1
-
-```{r}
-#| include: false
-person_examples <- data$metadata %>%
-  filter(
-    person_id == 1,
-    session == 1
-  ) %>%
-  group_by(digit) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-
-
-```
-
 ```{r}
 #| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
+s <- 1
+selected_persons <- c(1, 9, 18)
 
-for (i in 1:nrow(person_examples)) {
-  
-  image_id <- person_examples$image_id[i]
-  digit <- person_examples$digit[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Digit", digit)
-  )
+# Set up a plotting grid: 3 rows (one for each person) and 5 columns (for the 5 sessions)
+par(mfrow = c(length(selected_persons), 5), mar = c(0.5, 0.5, 1, 0.5))
+
+for (p in selected_persons) {
+  for (d in 0:4) {
+    # Find the index matching the person, digit, and session
+    matching_indices <- which(meta$person_id == p & meta$digit == d & meta$session == s)
+    
+    if (length(matching_indices) > 0) {
+      i <- matching_indices[1]
+      image(t(data$images[i,,,1])[, 28:1], axes = FALSE, col = gray.colors(256),
+            main = paste("Person", p, "| S", s))
+    } else {
+      # Plot an empty blank space if a specific combination is missing
+      plot.new()
+      title(main = paste("Person", p, "| S", s))
+    }
+  }
 }
 
+# Reset plotting parameters back to default
 par(mfrow = c(1, 1))
 ```
 
-Visually, person 1's digits are centered on the image, and occupy similar proportions relative to the size of the images. Digits 1, 2, and 3 share a similar curved arc like top loop shape. Digits 1, and 2 have similar flat horizontal strokes at the base.
+Across all digits, a visual evaluation reveals distinctive structural and geometric features that define each individual's overall writing style. Person 1 produces centered digits occupying consistent relative proportions, where digits 1, 2, and 3 share a similar curved, arch-like top loop, and digits 1 and 2 feature flat horizontal base strokes. Similarly, Person 9 exhibits overlapping structural traits across digits, including a smoothly curved top arch across digits 1, 2, and 3, flat horizontal base strokes on digits 1 and 2, and enclosed loop structures within digits 0 and 4. In contrast, Person 18 displays strong slanted and angular characteristics, with digits 1 through 4 featuring pronounced rightward slants and sharp, linear strokes rather than smooth curves, alongside flat horizontal baselines (digits 1 and 2) and sharp horizontal cross-strokes across digits 1, 2, and 4.
 
-#### Person 9
 
-```{r}
-#| include: false
-person_examples <- data$metadata %>%
-  filter(
-    person_id == 9,
-    session == 1
-  ) %>%
-  group_by(digit) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
-#| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
-
-for (i in 1:nrow(person_examples)) {
-  
-  image_id <- person_examples$image_id[i]
-  digit <- person_examples$digit[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Digit", digit)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-Across individual digits, several structural and geometric shapes overlap: Digits 1, 2, and 3 share a smoothly curved top arch; Digits 1 and 2 both feature a flat horizontal stroke at the base; and Digit 0 and Digit 4 incorporate enclosed loop structures.
-
-#### Person 18
-
-```{r}
-#| include: false
-person_examples <- data$metadata %>%
-  filter(
-    person_id == 18,
-    session == 1
-  ) %>%
-  group_by(digit) %>%
-  slice_sample(n = 1) %>%
-  ungroup()
-```
-
-```{r}
-#| echo: false
-par(
-  mfrow = c(2, 3),
-  mar = c(2, 2, 3, 2)
-)
-
-for (i in 1:nrow(person_examples)) {
-  
-  image_id <- person_examples$image_id[i]
-  digit <- person_examples$digit[i]
-  
-  display_image(
-    data$images[image_id,,,],
-    paste("Digit", digit)
-  )
-}
-
-par(mfrow = c(1, 1))
-```
-
-Person 18's handwriting samples exhibit strong slanted characteristics and angular features: Digits 1, 2, 3, and 4 all feature pronounced rightward slants and sharp, linear strokes rather than smooth curves. Additionally, horizontal stroke alignments appear across multiple numbers, Digits 1 and 2 share flat horizontal base lines, while Digits 1, 2, and 4 incorporate sharp, nearly horizontal top or middle cross-strokes.
-
-### Overall Comments
-
-Visual analysis indicates noticeable variations in handwriting across different individuals. Even when writing the same digit, writers demonstrate distinct differences in shape, scale, stroke direction, and style. However, individual handwriting also displays consistent stylistic patterns; as shown in the previous section, a single writer often applies similar structural and graphical characteristics across different digits.
 
 ## Convolutional Neural Network
 
