@@ -1,3 +1,4 @@
+
 library(keras3)
 library(imager)
 library(keras3)
@@ -12,6 +13,7 @@ images <- data$images / 255
 
 # rename for easy references later
 person_id <- data$metadata$person_id
+person_id <- as.factor(person_id)
 digit <- data$metadata$digit
 session <- data$metadata$session
 
@@ -137,71 +139,6 @@ all(data$metadata$digit[test_pairs[, 1]] ==
 
 
 
-# build CNN ----------------------------
-
-## define dim of input (images are 28 x 28 pixels, and 1 implies grayscale)
-image_input <- layer_input(
-  shape = c(28, 28, 1))
-
-# first convolutional layer
-embedding <- image_input |>
-  layer_conv_2d(
-    filters = 16, # 16 filters, each of size 3x3
-    kernel_size = 3,
-    activation = "relu" # max(0,x) (output from 1st conv layer is 26x26x16)
-  ) |>
-  # 2x2 subregions, takes max (at end of CNN slides) (dim is now 13x13x16)
-  layer_max_pooling_2d( 
-    pool_size = 2
-  ) |>
-  # second convolutional layer (check if actually necessary)
-  layer_conv_2d(
-    filters = 32,
-    kernel_size = 3, #(produces output of 11x11x32)
-    activation = "relu"
-  ) |>
-  layer_global_average_pooling_2d() |>  # outputs a vec of length 32 (1 value
-  # for each filter map)
-  layer_dense(16) # embedding forced to be 16 units long
-
-
-# packages all of the above together (similar to creating a function)
-encoder <- keras_model(
-  inputs = image_input,
-  outputs = embedding
-)
-
-
-
-
-
-
-
-## Siamese model ----------------
-
-# Characteristics of each image in the pair
-left_input <- layer_input(shape = c(28, 28, 1))
-right_input <- layer_input(shape = c(28, 28, 1))
-
-# get encodings for both images by passing them through the same encoder
-distance <- list(
-  encoder(left_input),
-  encoder(right_input)) |> 
-  
-  # calc euclidean distance between the 2 embeddings
-  layer_lambda(
-    f = function(z) {
-      op_sqrt(op_sum(op_square(z[[1]] - z[[2]]),axis = 2, keepdims = TRUE) 
-              + 1e-7)
-    }
-  )
-
-# package everything together
-siamese_model <- keras_model(
-  inputs = list(left_input, right_input),
-  outputs = distance)
-
-
 #loss function (y = 1 means same writer) 
 contrastive_loss <- function(y, distance) {
   op_mean(y * op_square(distance) + (1 - y) * op_square(op_maximum(
@@ -209,46 +146,8 @@ contrastive_loss <- function(y, distance) {
 }
 
 
-siamese_model |> compile(
-  optimizer = optimizer_adam(learning_rate = 1e-3), loss = contrastive_loss)
-
-
-#Train siamese model ----------------------------------
-history <- siamese_model |> fit(
-  
-  x = list(
-    train$left,
-    train$right),
-  
-  y = train$y,
-  
-  validation_data = list(
-    list(
-      valid$left,
-      valid$right), 
-    valid$y),
-  
-  epochs = 5,
-  
-  batch_size = 64)
-
-
-plot(history)
-
-
-# Validation distances
-valid_distance <- as.numeric(
-  predict(siamese_model, list(valid$left, valid$right)))
-
-
-
-valid_same <- as.logical(valid$y[, 1])
-
-
-
-
+# calc balanceed accuracy
 balanced_accuracy_at <- function(cut) {
-  
   predicts_same <- valid_distance < cut
   same_rate <- mean(predicts_same[valid_same])
   different_rate <- mean(!predicts_same[!valid_same])
@@ -260,25 +159,419 @@ balanced_accuracy_at <- function(cut) {
 
 
 
-# to find appropriate threshold
-threshold_candidates <- sort(unique(valid_distance)) # could try seq of values?
 
-threshold_scores <- vapply(threshold_candidates,balanced_accuracy_at, numeric(1))
-
-best_index <- which.max(threshold_scores)
-
-threshold <- threshold_candidates[best_index]
-
-threshold
-
-
-
-# use best threshold
-validation_result <- data.frame(threshold = threshold, balanced_accuracy = threshold_scores[best_index])
-
-validation_result
-
+build_siamese <- function(train, valid,
+                          n_filters = 16,
+                          kernel_size = 3,
+                          act_func1 = "relu",
+                          act_func2 = "relu",
+                          nu = 0.001,
+                          dropout_rate = 0.2,
+                          n_epochs = 15,
+                          lr = 1e-3,
+                          double_layer = TRUE) {
+  
+  # Build CNN ----------------------------
+  
+  image_input <- layer_input(shape = c(28, 28, 1))
+  
+  # First convolutional layer
+  embedding <- image_input |>
+    layer_conv_2d(
+      filters = n_filters,
+      kernel_size = kernel_size,
+      activation = act_func1,
+      kernel_regularizer = regularizer_l2(nu)
+    ) |>
+    layer_max_pooling_2d(pool_size = 2) |>
+    layer_dropout(rate = dropout_rate)
+  
+  # Optional second convolutional layer
+  if (double_layer) {
+    embedding <- embedding |>
+      layer_conv_2d(
+        filters = 2 * n_filters,
+        kernel_size = kernel_size,
+        activation = act_func2,
+        kernel_regularizer = regularizer_l2(nu)
+      )
+  }
+  
+  # Global average pooling and embedding
+  embedding <- embedding |>
+    layer_global_average_pooling_2d() |>
+    layer_dense(
+      units = 16,
+      kernel_regularizer = regularizer_l2(nu)
+    )
+  
+  # Package encoder together
+  encoder <- keras_model(
+    inputs = image_input,
+    outputs = embedding
+  )
+  
+  
+  # Siamese model ------------------------
+  
+  left_input <- layer_input(shape = c(28, 28, 1))
+  right_input <- layer_input(shape = c(28, 28, 1))
+  
+  # Encode both images using the same encoder
+  distance <- list(
+    encoder(left_input),
+    encoder(right_input)
+  ) |>
+    layer_lambda(
+      f = function(z) {
+        op_sqrt(
+          op_sum(
+            op_square(z[[1]] - z[[2]]),
+            axis = 2,
+            keepdims = TRUE
+          ) + 1e-7
+        )
+      }
+    )
+  
+  # Package Siamese model
+  siamese_model <- keras_model(
+    inputs = list(left_input, right_input),
+    outputs = distance
+  )
+  
+  
+  # Compile model ------------------------
+  
+  siamese_model |>
+    compile(
+      optimizer = optimizer_adam(learning_rate = lr),
+      loss = contrastive_loss
+    )
+  
+  
+  # Train Siamese model ------------------
+  
+  history <- siamese_model |>
+    fit(
+      x = list(train$left, train$right),
+      y = train$y,
+      validation_data = list(
+        list(valid$left, valid$right),
+        valid$y
+      ),
+      epochs = n_epochs,
+      batch_size = 64
+    )
+  
+  
+  # Validation distances -----------------
+  
+  valid_distance <- as.numeric(
+    predict(
+      siamese_model,
+      list(valid$left, valid$right)
+    )
+  )
+  
+  valid_same <- as.logical(valid$y[, 1])
+  
+  
+  # Find appropriate threshold -----------
+  
+  threshold_candidates <- sort(unique(valid_distance))
+  
+  # Calculate balanced accuracy using the
+  # previously defined function
+  threshold_scores <- vapply(
+    threshold_candidates,
+    function(cut) {
+      predicts_same <- valid_distance < cut
+      
+      same_rate <- mean(predicts_same[valid_same])
+      different_rate <- mean(!predicts_same[!valid_same])
+      
+      (same_rate + different_rate) / 2
+    },
+    numeric(1)
+  )
+  
+  best_index <- which.max(threshold_scores)
+  threshold <- threshold_candidates[best_index]
+  
+  
+  # Validation results -------------------
+  
+  validation_result <- data.frame(
+    threshold = threshold,
+    balanced_accuracy = threshold_scores[best_index]
+  )
+  
+  
+  # Return results -----------------------
+  
+  return(list(
+    encoder = encoder,
+    siamese_model = siamese_model,
+    history = history,
+    valid_distance = valid_distance,
+    valid_same = valid_same,
+    threshold = threshold,
+    validation_result = validation_result
+  ))
+}
 ######--------------------------------------------------------------------------
+
+
+
+## Test siamese with only 1 hidden layer
+siamese_1_layer <- build_siamese(train = train, valid = valid, double_layer = FALSE)
+
+## Test siamese with only 2 hidden layers
+siamese_2_layer <- build_siamese(train = train, valid = valid, double_layer = TRUE)
+
+# Two hidden layers much better. Tune other parameters based on 2 hidden layers
+
+
+
+
+
+# Hyperparameter grid ----------------------------
+
+overall_grid <- expand.grid(
+  n_filters = c(16, 32, 64),
+  kernel_size = c(3, 5, 7),
+  act_func1 = c("relu", "tanh"),
+  act_func2 = c("relu", "tanh"),
+  nu = c(0, 0.001, 0.01),
+  dropout_rate = c(0, 0.2, 0.4),
+  lr = c(0.01, 0.001, 0.0001),
+  KEEP.OUT.ATTRS = FALSE,
+  stringsAsFactors = FALSE
+)
+
+
+grid_act_funcs <- expand.grid(
+  act_func1 = c("relu", "tanh"),
+  act_func2 = c("relu", "tanh"),
+  KEEP.OUT.ATTRS = FALSE,
+  stringsAsFactors = FALSE
+)
+
+# Confirm number of combinations
+#nrow(grid_act_funcs)  # 4
+
+# Inspect grid
+#head(grid_act_funcs)
+
+# Test which combination of activation functions is optimal
+siamese_relu_relu <- build_siamese(train = train, valid = valid, act_func1 = 'relu', act_func2 = 'relu')
+siamese_relu_tanh <- build_siamese(train = train, valid = valid, act_func1 = 'relu', act_func2 = 'tanh')
+siamese_tanh_relu <- build_siamese(train = train, valid = valid, act_func1 = 'tanh', act_func2 = 'relu')
+siamese_tanh_tanh <- build_siamese(train = train, valid = valid, act_func1 = 'tanh', act_func2 = 'tanh')
+
+tuning_act_funcs_balanced_acc <- c(siamese_relu_relu$validation_result[2],
+                                   siamese_relu_tanh$validation_result[2],
+                                   siamese_tanh_relu$validation_result[2],
+                                   siamese_tanh_tanh$validation_result[2])
+
+tuning_act_funcs_val_loss <- c(tail(siamese_relu_relu$history$metrics$val_loss, 1),
+                               tail(siamese_relu_tanh$history$metrics$val_loss, 1),
+                               tail(siamese_tanh_relu$history$metrics$val_loss, 1),
+                               tail(siamese_tanh_tanh$history$metrics$val_loss, 1))
+
+tuning_act_funcs_df <- as.data.frame(rbind(tuning_act_funcs_balanced_acc,
+                                           tuning_act_funcs_val_loss))
+
+par(mfrow = c(1,2))
+plot(c(1:4), tuning_act_funcs_balanced_acc, type = 'l', main = "Balanced accuracy", xaxt = 'n', xlab = '', ylab = 'balanced accuracy')
+axis(1, at = c(1:4), labels = c("relu_relu", "relu_tanh", "tanh_relu", "tanh_tanh"), las = 3)
+
+plot(c(1:4), tuning_act_funcs_val_loss, type = 'l', main = "Validation loss", xaxt = 'n', xlab = '', ylab = 'validation loss')
+axis(1, at = c(1:4), labels = c("relu_relu", "relu_tanh", "tanh_relu", "tanh_tanh"), las = 3)
+par(mfrow = c(1,1))
+
+
+colnames(tuning_act_funcs_df) <- c("relu_relu", "relu_tanh", "tanh_relu", "tanh_tanh")
+rownames(tuning_act_funcs_df) <- c("Balanced accuracy", "Validation loss")
+
+tuning_act_funcs_df
+
+# optimal combination of activation functions based on balanced accuracy
+act_func1 <- 'relu'
+act_func2 <- 'tanh'
+
+
+
+
+
+grid_filter <- expand.grid(
+  n_filters = c(16, 32, 64),
+  kernel_size = c(3, 5, 7),
+  KEEP.OUT.ATTRS = FALSE,
+  stringsAsFactors = FALSE
+)
+
+
+# Store results
+grid_filter_results <- grid_filter
+grid_filter_results$balanced_accuracy <- NA_real_
+grid_filter_results$val_loss <- NA_real_
+
+# Loop through each row of the grid
+for (i in seq_len(nrow(grid_filter))) {
+  cat('-------------Model', i, 'of', nrow(grid_filter),'-------------\n')
+  
+  result <- build_siamese(
+    train = train,
+    valid = valid,
+    act_func1 = act_func1,
+    act_func2 = act_func2,
+    n_filters = grid_filter$n_filters[i],
+    kernel_size = grid_filter$kernel_size[i],
+    double_layer = TRUE
+  )
+  
+  # Store validation balanced accuracy
+  grid_filter_results$balanced_accuracy[i] <- result$validation_result$balanced_accuracy
+  grid_filter_results$val_loss[i] <- tail(result$history$metrics$val_loss, 1)
+}
+
+# View results
+grid_filter_results
+
+
+# Set up 2 rows x 3 columns
+par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
+
+kernel_sizes <- sort(unique(grid_filter_results$kernel_size))
+
+# Common y-axis limits for each metric
+acc_ylim <- range(grid_filter_results$balanced_accuracy, na.rm = TRUE)
+loss_ylim <- range(grid_filter_results$val_loss, na.rm = TRUE)
+
+for (k in kernel_sizes) {
+  
+  dat <- grid_filter_results[
+    grid_filter_results$kernel_size == k, ]
+  
+  # Balanced accuracy (top row)
+  plot(
+    dat$n_filters, dat$balanced_accuracy,
+    type = "b", pch = 19,
+    xlab = "Number of filters",
+    ylab = "Balanced accuracy",
+    main = paste("Kernel size =", k),
+    ylim = acc_ylim,
+    xaxt = "n"
+  )
+  axis(1, at = dat$n_filters)
+}
+
+for (k in kernel_sizes) {
+  
+  dat <- grid_filter_results[
+    grid_filter_results$kernel_size == k, ]
+  
+  # Validation loss (bottom row)
+  plot(
+    dat$n_filters, dat$val_loss,
+    type = "b", pch = 19,
+    xlab = "Number of filters",
+    ylab = "Validation loss",
+    main = paste("Kernel size =", k),
+    ylim = loss_ylim,
+    xaxt = "n"
+  )
+  axis(1, at = dat$n_filters)
+}
+
+# Reset plotting layout
+par(mfrow = c(1, 1))
+
+
+
+
+
+
+#filt_opt_ind <- which.max(grid_filter_results$balanced_accuracy)
+
+# find index of the combo that produces best results
+best_ind <- which.max(grid_filter_results$balanced_accuracy)
+best_val <- grid_filter_results$balanced_accuracy[best_ind]
+
+
+# to find second highest result, replace best with 0
+grid_filter_results$balanced_accuracy[best_ind] <- 0
+
+# second best result index
+conservative_ind <- which.max(grid_filter_results$balanced_accuracy)
+
+# replace the value of the best result
+grid_filter_results$balanced_accuracy[best_ind] <- best_val
+
+# pick filter size and number based on second best results
+n_filters <- grid_filter_results$n_filters[conservative_ind]
+kernel_size <- grid_filter_results$kernel_size[conservative_ind]
+
+
+
+'''
+## 
+
+grid_nu_lr_dr <- expand.grid(
+  nu = c(0, 0.001, 0.01),
+  dropout_rate = c(0, 0.2, 0.4),
+  lr = c(0.01, 0.001, 0.0001),
+  KEEP.OUT.ATTRS = FALSE,
+  stringsAsFactors = FALSE
+)
+
+# Store results
+grid_results_nu_lr_dr <- grid_nu_lr_dr
+grid_results_nu_lr_dr$balanced_accuracy <- NA_real_
+
+# Loop through each row of the grid
+for (i in seq_len(nrow(grid_nu_lr_dr))) {
+  
+  result <- build_siamese(
+    train = train,
+    valid = valid,
+    nu = grid_nu_lr_dr$nu[i],
+    dropout_rate = grid_nu_lr_dr$dropout_rate[i],
+    lr = grid_nu_lr_dr$lr[i],
+    double_layer = TRUE
+  )
+  
+  # Store validation balanced accuracy
+  grid_results_nu_lr_dr$balanced_accuracy[i] <-
+    result$validation_result$balanced_accuracy
+}
+
+# View results
+grid_results_nu_lr_dr
+
+'''
+
+
+
+
+
+# Fit final model
+# use tuned parameter values and activation function combinations
+# also use 6 epochs, since it stabilizes around here. 15 epochs unnecessary.
+
+final_siamese <- build_siamese(train = train, valid = valid, n_filters = n_filters, kernel_size = kernel_size, act_func1 = act_func1, act_func2 = act_func2, n_epochs = 6)
+
+
+
+
+
+
+
+
+
+
 # create different pairs for test set
 set.seed(25)
 
@@ -383,7 +676,7 @@ table(test_pair_type, session[test_pairs[,1]] == session[test_pairs[,2]])
 ######--------------------------------------------------------------------------
 
 # final eval using tuned parameters and other final mod choices
-test_distance <- as.numeric(predict(siamese_model,list(test$left,test$right)))
+test_distance <- as.numeric(predict(final_siamese$siamese_model,list(test$left,test$right)))
 
 true_same <- as.logical(test$y[, 1])
 
@@ -505,7 +798,7 @@ roc_object <- roc(response = true_same, predictor = -test_distance)
 auc_value <- auc(roc_object)
 auc_value
 
-
+par(mfrow = c(1,1))
 plot(roc_object, main = "Siamese Network ROC Curve")
 
 
