@@ -691,7 +691,7 @@ test_distance <- as.numeric(predict(final_siamese$siamese_model,list(test$left,t
 
 true_same <- as.logical(test$y[, 1])
 
-predicted_same <- test_distance < threshold
+predicted_same <- test_distance < final_siamese$threshold
 
 ## format results
 session_writer_results <- lapply(unique(test_pair_type), function(s) {
