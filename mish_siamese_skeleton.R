@@ -339,6 +339,7 @@ siamese_2_layer <- build_siamese(train = train, valid = valid, double_layer = TR
 
 # Hyperparameter grid ----------------------------
 
+# Overall grid not used for tuning
 overall_grid <- expand.grid(
   n_filters = c(16, 32, 64),
   kernel_size = c(3, 5, 7),
@@ -512,13 +513,14 @@ conservative_ind <- which.max(grid_filter_results$balanced_accuracy)
 grid_filter_results$balanced_accuracy[best_ind] <- best_val
 
 # pick filter size and number based on second best results
-n_filters <- grid_filter_results$n_filters[conservative_ind]
-kernel_size <- grid_filter_results$kernel_size[conservative_ind]
+n_filters <- grid_filter_results$n_filters[best_ind]
+kernel_size <- grid_filter_results$kernel_size[best_ind]
 
+# best combination: 16 filters of size 5x5
+# conservative combination: 32 filters of size 5x5
 
 
 '''
-## 
 
 grid_nu_lr_dr <- expand.grid(
   nu = c(0, 0.001, 0.01),
