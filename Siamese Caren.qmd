@@ -880,8 +880,64 @@ build_siamese <- function(train, valid,
 ## Test siamese with only 1 hidden layer
 siamese_1_layer <- build_siamese(train = train, valid = valid, double_layer = FALSE)
 
+
 ## Test siamese with only 2 hidden layers
 siamese_2_layer <- build_siamese(train = train, valid = valid, double_layer = TRUE)
+
+
+png(filename = "siamese_1_layer_epochs.png", width = 1200, height = 600, res = 150)
+plot(siamese_1_layer$history)
+dev.off()
+
+
+# fit many models instead of just 1 ----------------------
+
+# Seeds for 3 repetitions
+seeds <- c(8, 10, 27)
+
+# Store results
+layer_results <- data.frame(
+  architecture = c("1 layer", "2 layers"),
+  balanced_accuracy = NA_real_,
+  val_loss = NA_real_
+)
+
+# Run each architecture 3 times
+for (i in 1:2) {
+
+  ba_reps <- numeric(length(seeds))
+  loss_reps <- numeric(length(seeds))
+
+  for (j in seq_along(seeds)) {
+
+    cat("Architecture:", layer_results$architecture[i],
+        "| Repetition:", j,
+        "| Seed:", seeds[j], "\n")
+
+    result <- build_siamese(
+      train = train,
+      valid = valid,
+      double_layer = (i == 2),
+      seed = seeds[j]
+    )
+
+    ba_reps[j] <- as.numeric(
+      result$validation_result$balanced_accuracy
+    )
+
+    loss_reps[j] <- as.numeric(
+      tail(result$history$metrics$val_loss, 1)
+    )
+  }
+
+  # Average across the 3 repetitions
+  layer_results$balanced_accuracy[i] <- mean(ba_reps)
+  layer_results$val_loss[i] <- mean(loss_reps)
+}
+
+# View average results
+layer_results
+
 
 # Two hidden layers much better. Tune other parameters based on 2 hidden layers
 ```
@@ -905,6 +961,7 @@ overall_grid <- expand.grid(
 )
 
 
+
 grid_act_funcs <- expand.grid(
   act_func1 = c("relu", "tanh"),
   act_func2 = c("relu", "tanh"),
@@ -912,53 +969,92 @@ grid_act_funcs <- expand.grid(
   stringsAsFactors = FALSE
 )
 
-# Confirm number of combinations
-#nrow(grid_act_funcs)  # 4
+# Seeds for 3 repetitions
+seeds <- c(8, 10, 27)
 
-# Inspect grid
-#head(grid_act_funcs)
+# Store average results for each combination
+tuning_act_funcs_balanced_acc <- numeric(nrow(grid_act_funcs))
+tuning_act_funcs_val_loss <- numeric(nrow(grid_act_funcs))
 
-# Test which combination of activation functions is optimal
-siamese_relu_relu <- build_siamese(train = train, valid = valid, act_func1 = 'relu', act_func2 = 'relu')
-siamese_relu_tanh <- build_siamese(train = train, valid = valid, act_func1 = 'relu', act_func2 = 'tanh')
-siamese_tanh_relu <- build_siamese(train = train, valid = valid, act_func1 = 'tanh', act_func2 = 'relu')
-siamese_tanh_tanh <- build_siamese(train = train, valid = valid, act_func1 = 'tanh', act_func2 = 'tanh')
+# Run each combination 3 times
+for (i in seq_len(nrow(grid_act_funcs))) {
+  
+  cat("-------------Model", i, "of", nrow(grid_act_funcs), "-------------\n")
+  
+  ba_reps <- numeric(length(seeds))
+  loss_reps <- numeric(length(seeds))
+  
+  for (j in seq_along(seeds)) {
+    
+    cat("Repetition", j, "of", length(seeds),
+        "(seed =", seeds[j], ")\n")
+    
+    result <- build_siamese(
+      train = train,
+      valid = valid,
+      act_func1 = grid_act_funcs$act_func1[i],
+      act_func2 = grid_act_funcs$act_func2[i],
+      seed = seeds[j]
+    )
+    
+    ba_reps[j] <- as.numeric(
+      result$validation_result[2]
+    )
+    
+    loss_reps[j] <- as.numeric(
+      tail(result$history$metrics$val_loss, 1)
+    )
+  }
+  
+  # Average across the 3 repetitions
+  tuning_act_funcs_balanced_acc[i] <- mean(ba_reps)
+  tuning_act_funcs_val_loss[i] <- mean(loss_reps)
+}
 
-tuning_act_funcs_balanced_acc <- c(siamese_relu_relu$validation_result[2],
-                                   siamese_relu_tanh$validation_result[2],
-                                   siamese_tanh_relu$validation_result[2],
-                                   siamese_tanh_tanh$validation_result[2])
+# Create results data frame (same structure as before)
+tuning_act_funcs_df <- as.data.frame(
+  rbind(
+    tuning_act_funcs_balanced_acc,
+    tuning_act_funcs_val_loss
+  )
+)
 
-tuning_act_funcs_val_loss <- c(tail(siamese_relu_relu$history$metrics$val_loss, 1),
-                               tail(siamese_relu_tanh$history$metrics$val_loss, 1),
-                               tail(siamese_tanh_relu$history$metrics$val_loss, 1),
-                               tail(siamese_tanh_tanh$history$metrics$val_loss, 1))
+# column and row names
+colnames(tuning_act_funcs_df) <- c("relu_relu", "tanh_relu", "relu_tanh", "tanh_tanh")
 
-tuning_act_funcs_df <- as.data.frame(rbind(tuning_act_funcs_balanced_acc,
-                                           tuning_act_funcs_val_loss))
-
-par(mfrow = c(1,2))
-plot(c(1:4), tuning_act_funcs_balanced_acc, type = 'l', main = "Balanced accuracy", xaxt = 'n', xlab = '', ylab = 'balanced accuracy')
-axis(1, at = c(1:4), labels = c("relu_relu", "relu_tanh", "tanh_relu", "tanh_tanh"), las = 3)
-
-plot(c(1:4), tuning_act_funcs_val_loss, type = 'l', main = "Validation loss", xaxt = 'n', xlab = '', ylab = 'validation loss')
-axis(1, at = c(1:4), labels = c("relu_relu", "relu_tanh", "tanh_relu", "tanh_tanh"), las = 3)
-par(mfrow = c(1,1))
-
-
-colnames(tuning_act_funcs_df) <- c("relu_relu", "relu_tanh", "tanh_relu", "tanh_tanh")
 rownames(tuning_act_funcs_df) <- c("Balanced accuracy", "Validation loss")
 
+# Plot results 
+par(mfrow = c(1, 2))
+
+plot(1:4, tuning_act_funcs_balanced_acc, type = "l", main = "Balanced accuracy", 
+     xaxt = "n", xlab = "", ylab = "balanced accuracy")
+
+axis(1, at = 1:4, labels = c("relu_relu", "relu_tanh", "tanh_relu", "tanh_tanh"), 
+     las = 3)
+
+plot(1:4, tuning_act_funcs_val_loss, type = "l", main = "Validation loss", 
+     xaxt = "n", xlab = "", ylab = "validation loss")
+
+axis(1, at = 1:4, labels = c("relu_relu", "relu_tanh", "tanh_relu", "tanh_tanh"), 
+     las = 3)
+
+par(mfrow = c(1, 1))
+
+# View results
 tuning_act_funcs_df
 
-# optimal combination of activation functions based on balanced accuracy
-act_func1 <- 'relu'
-act_func2 <- 'tanh'
+# Optimal combination based on average balanced accuracy
+best_ind <- which.max(tuning_act_funcs_balanced_acc)
+
+act_func1 <- grid_act_funcs$act_func1[best_ind]
+act_func2 <- grid_act_funcs$act_func2[best_ind]
+
 
 ```
 
 
-```{r}
+```{r siamese-filter-tune}
 
 
 
@@ -969,34 +1065,52 @@ grid_filter <- expand.grid(
   stringsAsFactors = FALSE
 )
 
-
 # Store results
 grid_filter_results <- grid_filter
 grid_filter_results$balanced_accuracy <- NA_real_
 grid_filter_results$val_loss <- NA_real_
 
-# Loop through each row of the grid
+# Run each combination 3 times
+seeds <- c(8, 10, 27)
+
 for (i in seq_len(nrow(grid_filter))) {
-  cat('-------------Model', i, 'of', nrow(grid_filter),'-------------\n')
+  cat('=================== Model', i, 'of', nrow(grid_filter), ' ===================\n')
   
-  result <- build_siamese(
-    train = train,
-    valid = valid,
-    act_func1 = act_func1,
-    act_func2 = act_func2,
-    n_filters = grid_filter$n_filters[i],
-    kernel_size = grid_filter$kernel_size[i],
-    double_layer = TRUE
-  )
+  # Store metrics for the 3 repetitions
+  ba_reps <- numeric(length(seeds))
+  loss_reps <- numeric(length(seeds))
   
-  # Store validation balanced accuracy
-  grid_filter_results$balanced_accuracy[i] <- result$validation_result$balanced_accuracy
-  grid_filter_results$val_loss[i] <- tail(result$history$metrics$val_loss, 1)
+  for (j in seq_along(seeds)) {
+    cat('---------- Repetition', j, 'of', length(seeds),
+        '(seed =', seeds[j], ') ----------\n')
+    
+    result <- build_siamese(
+      train = train,
+      valid = valid,
+      act_func1 = act_func1,
+      act_func2 = act_func2,
+      n_filters = grid_filter$n_filters[i],
+      kernel_size = grid_filter$kernel_size[i],
+      double_layer = TRUE,
+      seed = seeds[j]
+    )
+    
+    ba_reps[j] <- result$validation_result$balanced_accuracy
+    loss_reps[j] <- tail(result$history$metrics$val_loss, 1)
+  }
+  
+  # Average metrics across the 3 repetitions
+  grid_filter_results$balanced_accuracy[i] <- mean(ba_reps)
+  grid_filter_results$val_loss[i] <- mean(loss_reps)
 }
 
-# View results
+# View results (same structure as before)
 grid_filter_results
 
+```
+
+
+```{r}
 
 # Set up 2 rows x 3 columns
 par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
@@ -1185,15 +1299,19 @@ make_controlled_pairs <- function(ids, n, pair_type) {
 # use functin to get different types of test pairs
 n_per_type <- 1000
 
+set.seed(25)
 test_pairs_same_same <- make_controlled_pairs(test_ids, n_per_type, 
                                               "same_writer_same_session")
 
+set.seed(25)
 test_pairs_same_diff <- make_controlled_pairs(test_ids, n_per_type,
                                               "same_writer_different_session")
 
+set.seed(25)
 test_pairs_diff_same <- make_controlled_pairs(test_ids, n_per_type,
                                               "different_writer_same_session")
 
+set.seed(25)
 test_pairs_diff_diff <- make_controlled_pairs(test_ids, n_per_type, 
                                               "different_writer_different_session")
 
@@ -1242,7 +1360,7 @@ test_distance <- as.numeric(predict(final_siamese$siamese_model,list(test$left,t
 ```{r}
 true_same <- as.logical(test$y[, 1])
 
-predicted_same <- test_distance < threshold
+predicted_same <- test_distance < final_siamese$threshold
 
 ## format results
 session_writer_results <- lapply(unique(test_pair_type), function(s) {
@@ -1367,6 +1485,142 @@ par(mfrow = c(1,1))
 plot(roc_object, main = "Siamese Network ROC Curve")
 
 
+
+```
+
+
+```{r}
+# ------------------------------------------------------------
+# Find one incorrect prediction per writer-session category and one per digit
+
+set.seed(25)
+
+# Identify incorrectly classified pairs
+incorrect <- which(predicted_same != true_same)
+
+# Select one random incorrect pair from a set of rows
+choose_error <- function(rows, category, value) {
+  
+  errors <- rows[rows %in% incorrect]
+  
+  if (length(errors) == 0) {
+    message("No incorrect predictions for: ", category, " = ", value)
+    return(NULL)
+  }
+  
+  selected <- sample(errors, 1)
+  
+  data.frame(
+    row = selected,
+    category = category,
+    value = as.character(value)
+  )
+}
+
+# One example for each writer-session combination
+pair_types <- c("Same writer, same session",
+  "Same writer, different session",
+  "Different writer, same session",
+  "Different writer, different session")
+
+writer_session_examples <- do.call(rbind, lapply(pair_types, function(p) {
+  choose_error(which(test_pair_type == p), "Writer-session", p)
+}))
+
+# One example for each digit
+digit_examples <- do.call(rbind, lapply(0:4, function(d) {
+  choose_error(which(test$digit == d), "Digit", d)
+}))
+
+# Combine the selected examples
+examples <- do.call(rbind, Filter(Negate(is.null),
+  list(writer_session_examples, digit_examples)))
+
+rownames(examples) <- NULL
+
+# Summarise the incorrect predictions -----------------------
+
+example_details <- do.call(rbind, lapply(seq_len(nrow(examples)), function(j) {
+  
+  r <- examples$row[j]
+  i <- test_pairs[r, 1]
+  k <- test_pairs[r, 2]
+  
+  data.frame(
+    category = examples$category[j],
+    value = examples$value[j],
+    pair_row = r,
+    digit = digit[i],
+    writer_left = person_id[i],
+    session_left = session[i],
+    writer_right = person_id[k],
+    session_right = session[k],
+    true_label = ifelse(true_same[r], "Same writer", "Different writers"),
+    predicted_label = ifelse(
+      predicted_same[r], "Same writer", "Different writers"
+    ),
+    distance = test_distance[r]
+  )
+}))
+
+print(example_details, row.names = FALSE)
+
+# Plot the two images in each selected pair -------------------------
+
+
+plot_pair_example <- function(r, heading = "") {
+  
+  i <- test_pairs[r, 1]
+  k <- test_pairs[r, 2]
+  
+  # Extract each 28 x 28 image
+  img_left <- images[i, , , 1]
+  img_right <- images[k, , , 1]
+  
+  # True and predicted labels
+  actual <- ifelse(true_same[r], "Same writer", "Different writers")
+  predicted <- ifelse(
+    predicted_same[r], "Same writer", "Different writers"
+  )
+  
+  # Display images side by side
+  old_par <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), oma = c(0, 0, 2, 0))
+  
+  image(
+    x = 1:28, y = 1:28,
+    z = t(img_left[28:1, ]),
+    col = gray.colors(256, start = 0, end = 1),
+    axes = FALSE, xlab = "", ylab = "", asp = 1,
+    main = paste0("Writer ", person_id[i],
+                  ", session ", session[i]))
+  
+  image(
+    x = 1:28, y = 1:28,
+    z = t(img_right[28:1, ]),
+    col = gray.colors(256, start = 0, end = 1),
+    axes = FALSE, xlab = "", ylab = "", asp = 1,
+    main = paste0("Writer ", person_id[k],
+                  ", session ", session[k]))
+  
+  # Centred above both images
+  mtext(paste0(heading, "Threshold: ", round(final_siamese$threshold,3), 
+               " | True: ", actual, " | Predicted: ", predicted, 
+               " | Distance: ", round(test_distance[r], 3)), 
+        side = 3, outer = TRUE, line = 0.5, cex = 0.9)
+  
+  par(old_par)
+}
+
+# Plot each selected examples
+
+for (j in seq_len(nrow(examples))) {
+  image_name <- paste0("siamese_error", j, ".png")
+  png(filename = image_name, width = 1200, height = 600, res = 150)
+  
+  plot_pair_example(
+    examples$row[j])
+  dev.off()
+}
 
 ```
 
