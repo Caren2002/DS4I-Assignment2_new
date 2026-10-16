@@ -6,7 +6,7 @@ editor: visual
 
 # Introduction
 
-This study utilizes a simulated dataset of 25,000 handwritten digits collected from 20 participants. Each individual provided 1,250 samples split across 5 sessions, with 50 samples recorded per session. Handwritten samples naturally exhibit intra-writer variability due to inherent personal differences and changing environmental conditions, such as time constraints during exams compared to relaxed note-taking. Nevertheless, underlying individual traits remain consistent, enabling writer identification.
+This study utilizes a simulated data set of 25,000 handwritten digits collected from 20 participants. Each individual provided 1,250 samples split across 5 sessions, with 50 samples recorded per session. Handwritten samples naturally exhibit intra-writer variability due to inherent personal differences and changing environmental conditions, such as time constraints during exams compared to relaxed note-taking. Nevertheless, underlying individual traits remain consistent, enabling writer identification.
 
 To investigate this data set, we address two core questions: first, whether we can identify a writer across different sessions, and second, whether we can determine if two arbitrary handwritten digits belong to the same person.
 
@@ -370,13 +370,14 @@ These problems have the potential to cause over fitting in the models. The way t
 \newpage
 
 # Methods and Results
-All analyses were conducted in R (R Core Team, 2026), and used the following packages:  
 
-* keras3 (Kalinowski et al., 2026) for neural network model building and training  
-* tidyverse (Wickham et al., 2019) for convenient data manipulation  
-* imager (Barthelme, 2025) for image processing and manipulation  
-* pROC (Xavier et al., 2011) for calculation of the area under the curve  
-* reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
+All analyses were conducted in R (R Core Team, 2026), and used the following packages:
+
+-   keras3 (Kalinowski et al., 2026) for neural network model building and training\
+-   tidyverse (Wickham et al., 2019) for convenient data manipulation\
+-   imager (Barthelme, 2025) for image processing and manipulation\
+-   pROC (Xavier et al., 2011) for calculation of the area under the curve\
+-   reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
 
 ## Convolutional Neural Network
 
@@ -518,7 +519,7 @@ The optimal distance threshold was found to be 0.247, meaning that 2 images with
 
 ::: {#tbl-results-session}
 | session_type      |    n | accuracy | sensitivity | specificity | balanced_accuracy |
-|:-----------|-----------:|-----------:|-----------:|-----------:|-----------:|
+|:------------------|-----:|---------:|------------:|------------:|------------------:|
 | Same session      | 2000 |    0.947 |       0.899 |       0.995 |             0.947 |
 | Different session | 2000 |    0.554 |       0.112 |       0.997 |             0.554 |
 
@@ -583,7 +584,7 @@ Performance varied across writers (@tbl-results-writer). Writer 18 achieved the 
 Table. Test classification performance per writer
 :::
 
-Lastly, the AUC value was calculated to be 0.963, indicating that  there is excellent discrimination between same-writer and different-writer pairs across all possible classification thresholds. However, the balanced accuracy of 0.554 (@tbl-results-session) for different-session pairs indicates poor classification performance at the selected threshold, particularly due to low sensitivity (0.112, @tbl-results-session). Overall, the high AUC alongside weak cross-session classification suggests that the model ranks pairs (by distance) well but struggles to correctly identify same-writer pairs across sessions at the chosen threshold.
+Lastly, the AUC value was calculated to be 0.963, indicating that there is excellent discrimination between same-writer and different-writer pairs across all possible classification thresholds. However, the balanced accuracy of 0.554 (@tbl-results-session) for different-session pairs indicates poor classification performance at the selected threshold, particularly due to low sensitivity (0.112, @tbl-results-session). Overall, the high AUC alongside weak cross-session classification suggests that the model ranks pairs (by distance) well but struggles to correctly identify same-writer pairs across sessions at the chosen threshold.
 
 ## Discussion
 
@@ -603,49 +604,20 @@ The higher training loss visible in @fig-siamese-1-layer-epochs may partly be ex
 
 ![Incorrect prediction during a different writer-different session combination](siamese_error8.png){#fig-siamese-error2 width="80%"}
 
-
-
 \newpage
+
 # References
 
-* R Core Team (2026). _R: A Language and Environment for Statistical Computing_. R
-  Foundation for Statistical Computing, Vienna, Austria. doi:10.32614/R.manuals
-  <https://doi.org/10.32614/R.manuals>. <https://www.R-project.org/>.  
-  
+-   R Core Team (2026). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing, Vienna, Austria. doi:10.32614/R.manuals <https://doi.org/10.32614/R.manuals>. <https://www.R-project.org/>.
 
-* Kalinowski T, Allaire J, Chollet F (2026). _keras3: R Interface to 'Keras'_.
-  doi:10.32614/CRAN.package.keras3 <https://doi.org/10.32614/CRAN.package.keras3>. R package
-  version 1.5.1, <https://CRAN.R-project.org/package=keras3>.  
-  
-  
-* Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A,
-  Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D,
-  Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to
-  the tidyverse.” _Journal of Open Source Software_, *4*(43), 1686. doi:10.21105/joss.01686
-  <https://doi.org/10.21105/joss.01686>.  
-  
-  
-* Barthelme S (2025). _imager: Image Processing Library Based on 'CImg'_.
-  doi:10.32614/CRAN.package.imager <https://doi.org/10.32614/CRAN.package.imager>. R package
-  version 1.0.8, <https://CRAN.R-project.org/package=imager>.  
-  
-  
-* Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek,
-  Jean-Charles Sanchez and Markus Müller (2011). pROC: an open-source package for R and S+
-  to analyze and compare ROC curves. BMC Bioinformatics, 12, p. 77.  DOI:
-  10.1186/1471-2105-12-77 <http://www.biomedcentral.com/1471-2105/12/77/>  
-  
-  
-  
-* Kalinowski T, Ushey K, Allaire J, Tang Y (2026). _reticulate: Interface to 'Python'_.
-  doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R
-  package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.  
-  
-  
-  
-* OpenAI (2026) ChatGPT [Large language model]. Available at: https://chatgpt.com/  (Accessed: 16 October 2026).  
+-   Kalinowski T, Allaire J, Chollet F (2026). *keras3: R Interface to 'Keras'*. doi:10.32614/CRAN.package.keras3 <https://doi.org/10.32614/CRAN.package.keras3>. R package version 1.5.1, <https://CRAN.R-project.org/package=keras3>.
 
+-   Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to the tidyverse.” *Journal of Open Source Software*, *4*(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>.
 
+-   Barthelme S (2025). *imager: Image Processing Library Based on 'CImg'*. doi:10.32614/CRAN.package.imager <https://doi.org/10.32614/CRAN.package.imager>. R package version 1.0.8, <https://CRAN.R-project.org/package=imager>.
 
+-   Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek, Jean-Charles Sanchez and Markus Müller (2011). pROC: an open-source package for R and S+ to analyze and compare ROC curves. BMC Bioinformatics, 12, p. 77. DOI: 10.1186/1471-2105-12-77 <http://www.biomedcentral.com/1471-2105/12/77/>
 
+-   Kalinowski T, Ushey K, Allaire J, Tang Y (2026). *reticulate: Interface to 'Python'*. doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.
 
+-   OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026).
