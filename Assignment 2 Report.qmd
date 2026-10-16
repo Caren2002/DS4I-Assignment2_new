@@ -363,6 +363,7 @@ Across all digits, a visual evaluation reveals distinctive structural and geomet
 
 ## Convolutional Neural Network
 
+### Results
 
 \newpage
 
@@ -507,5 +508,93 @@ Since validation balanced accuracy and error was already quite impressive, tunin
 To extensively evaluate the final model, a comprehensive test set was constructed, consisting of 1,000 image pairs  for each of the following writer–session combinations: same writer–same session, same writer–different sessions, different writers–same session, and different writers–different sessions. Each of the 2 images in a pair contained the same digit, and the 5 digits featured amongst the thousand pairs in each category. Since only session 5 was held out for testing, pairs involving different sessions were constructed using images from sessions 1–4. Although the individual images in these pairs had been encountered during training, the specific combinations of images had not been seen by the model. The test pairs therefore still provided a valid assessment of the model's ability to generalize to unseen pairwise comparisons, particularly its ability to distinguish between similar and dissimilar images under different writer–session conditions. However, this evaluation does not constitute a fully independent assessment of generalization to unseen images, since the images themselves were present in the training data. Consequently, the results should be interpreted as evidence of generalization to unseen image pairs rather than to entirely unseen data.
 
 
+### Results
+
+The optimal distance threshold was found to be 0.248, meaning that 2 images with a difference less than 0.248 were classified as being written by the same person.  
+
+@tbl-results-session shows the model performed very well on pairs from the same session, achieving a balanced accuracy of 99.1%. However, performance decreased substantially for pairs from different sessions, with a balanced accuracy of 68%. This difference was primarily driven by low sensitivity (37.3%), indicating that the model struggled to correctly identify similar pairs across sessions. In contrast, specificity remained high at 98.7%, suggesting that the model was effective at identifying dissimilar pairs regardless of session.  
+
+::: {#tbl-results-session}
+|session_type      |    n| accuracy| sensitivity| specificity| balanced_accuracy|
+|:-----------------|----:|--------:|-----------:|-----------:|-----------------:|
+|Same session      | 2000|    0.991|       0.998|       0.984|             0.991|
+|Different session | 2000|    0.680|       0.373|       0.987|             0.680|
+
+Table. Test performance of the Siamese network based on same and different sessions.
+:::
+
+
+
+@tbl-results-writer-session displays the results segregated into writer-session combinations. The model achieved high accuracy when classifying pairs from the same session, regardless of whether the images belonged to the same writer. Accuracy was 99.8% for the same-writer, same-session combination and 98.4% for different-writer, same-session pairs. Similarly, different-writer pairs from different sessions achieved 98.7% accuracy. However, accuracy dropped to 37.3% for the same writer across different sessions. This suggests that variation in handwriting between sessions posed a substantial challenge, even when the writer's identity remained unchanged.  
+
+::: {#tbl-results-writer-session}
+|pair_type                           |    n| correct| accuracy|
+|:-----------------------------------|----:|-------:|--------:|
+|Same writer, same session           | 1000|     998|    0.998|
+|Same writer, different session      | 1000|     373|    0.373|
+|Different writer, same session      | 1000|     984|    0.984|
+|Different writer, different session | 1000|     987|    0.987|
+
+Table. Classification accuracy across four combinations of writer identity and session.
+:::
+
+
+The model's performance was relatively consistent across the five digits (@tbl-results-digit), with accuracy ranging from 82.2% to 85.5% and balanced accuracy from 82% to 86%. Digit 0 achieved the highest balanced accuracy (86%), while digit 2 achieved the lowest (82%). Specificity was consistently high (98.2%–99%), whereas sensitivity was lower (65.9%–72.9%). This indicates that the model was generally effective at identifying pairs written by different writers, but was less effective at recognizing pairs written by the same writer. The similar performance across digits suggests that no single digit presented a substantially greater challenge for writer identification, although the differences in sensitivity indicate some variation in the model's ability to recognize the same writer across different digits.
+
+::: {#tbl-results-digit}
+| digit| accuracy| sensitivity| specificity| balanced_accuracy|
+|-----:|--------:|-----------:|-----------:|-----------------:|
+|     0|    0.855|       0.729|       0.990|             0.860|
+|     1|    0.822|       0.663|       0.985|             0.824|
+|     2|    0.822|       0.659|       0.982|             0.820|
+|     3|    0.841|       0.698|       0.987|             0.843|
+|     4|    0.837|       0.676|       0.984|             0.830|
+
+Table. Test classification performance across the five handwritten digits
+:::
+
+
+
+Performance varied considerably across writers (@tbl-results-writer). Writer 12 achieved the highest accuracy (96.2%) and balanced accuracy (96.1%), followed by writer 7, with a balanced accuracy of 91.9%. In contrast, writer 5 had the lowest balanced accuracy (72.6%), followed by writer 13 (75.7%). Specificity was generally high across writers, whereas sensitivity varied more substantially, ranging from 48.2% for writer 5 to 92.2% for writer 12. This suggests that the model's ability to identify similar pairs differed between writers, potentially reflecting individual differences in handwriting consistency. However, further investigation would be required to determine the reasons for these differences.
+
+::: {#tbl-results-writer}
+|writer |   n| accuracy| sensitivity| specificity| balanced_accuracy|
+|:------|---:|--------:|-----------:|-----------:|-----------------:|
+|1      | 197|    0.802|       0.635|       0.989|             0.812|
+|2      | 189|    0.804|       0.620|       0.979|             0.799|
+|3      | 206|    0.772|       0.558|       0.990|             0.774|
+|4      | 191|    0.848|       0.729|       1.000|             0.864|
+|5      | 186|    0.747|       0.482|       0.970|             0.726|
+|6      | 208|    0.755|       0.532|       1.000|             0.766|
+|7      | 202|    0.926|       0.848|       0.991|             0.919|
+|8      | 189|    0.831|       0.699|       0.958|             0.829|
+|9      | 191|    0.853|       0.723|       1.000|             0.861|
+|10     | 216|    0.801|       0.610|       0.966|             0.788|
+|11     | 201|    0.841|       0.721|       0.989|             0.855|
+|12     | 209|    0.962|       0.922|       1.000|             0.961|
+|13     | 207|    0.768|       0.551|       0.963|             0.757|
+|14     | 213|    0.869|       0.779|       0.954|             0.866|
+|15     | 205|    0.844|       0.656|       0.991|             0.823|
+|16     | 186|    0.849|       0.716|       0.989|             0.852|
+|17     | 193|    0.793|       0.608|       1.000|             0.804|
+|18     | 207|    0.865|       0.743|       1.000|             0.872|
+|19     | 189|    0.894|       0.796|       1.000|             0.898|
+|20     | 215|    0.879|       0.760|       0.991|             0.875|
+
+Table. Test classification performance per writer
+:::
+
+
+
 
 ## Discussion
+
+
+
+## Appendix
+
+![Example image pair.](siamese_error4.png){#fig-siamese-error1 width=80%}
+
+
+![Example image pair.](siamese_error3.png){#fig-siamese-error2 width=80%}
+![Example image pair.](siamese_error8.png){#fig-siamese-error3 width=80%}
