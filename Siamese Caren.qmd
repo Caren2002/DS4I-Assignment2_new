@@ -880,6 +880,12 @@ build_siamese <- function(train, valid,
 ## Test siamese with only 1 hidden layer
 siamese_1_layer <- build_siamese(train = train, valid = valid, double_layer = FALSE)
 
+
+png(filename = "siamese_1_layer_epochs.png", width = 1200, height = 600, res = 150)
+plot(siamese_1_layer$history)
+dev.off()
+
+
 ## Test siamese with only 2 hidden layers
 siamese_2_layer <- build_siamese(train = train, valid = valid, double_layer = TRUE)
 
