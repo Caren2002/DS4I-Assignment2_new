@@ -14,7 +14,7 @@ editor: visual
 
 :::: authors-container
 ::: author-card
-**Authors:** Una Fundzo • Miska Ramraj • Caren Pahla
+**Authors:** Una Fundzo • Mishka Ramraj • Caren Pahla
 :::
 ::::
 :::::
