@@ -1249,15 +1249,19 @@ make_controlled_pairs <- function(ids, n, pair_type) {
 # use functin to get different types of test pairs
 n_per_type <- 1000
 
+set.seed(25)
 test_pairs_same_same <- make_controlled_pairs(test_ids, n_per_type, 
                                               "same_writer_same_session")
 
+set.seed(25)
 test_pairs_same_diff <- make_controlled_pairs(test_ids, n_per_type,
                                               "same_writer_different_session")
 
+set.seed(25)
 test_pairs_diff_same <- make_controlled_pairs(test_ids, n_per_type,
                                               "different_writer_same_session")
 
+set.seed(25)
 test_pairs_diff_diff <- make_controlled_pairs(test_ids, n_per_type, 
                                               "different_writer_different_session")
 
