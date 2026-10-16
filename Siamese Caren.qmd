@@ -868,7 +868,6 @@ sort(colSums(conf), decreasing = TRUE)[1:5]  # predictions received; a fair shar
 
 # Siamese neural network
 
-```{r}
 ```{r create-foundational-functions}
 #| echo: false
 
@@ -969,7 +968,7 @@ all(data$metadata$digit[valid_pairs[, 1]] ==
 
 ```
 
-```{r}
+
 ```{r metric-functions}
 #| message: false
 #| warning: false
@@ -992,7 +991,7 @@ balanced_accuracy_at <- function(cut) {
 
 ```
 
-```{r}
+
 ```{r siamese-function}
 #| include: false
 build_siamese <- function(train, valid,
@@ -1162,7 +1161,7 @@ build_siamese <- function(train, valid,
 ######--------------------------------------------------------------------------
 ```
 
-```{r}
+
 ```{r n-layer-tuning}
 
 
@@ -1396,7 +1395,7 @@ grid_filter_results
 
 ```
 
-```{r}
+```{r filter-tune-plot}
 
 # Set up 2 rows x 3 columns
 par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
@@ -1508,7 +1507,7 @@ grid_results_nu_lr_dr
 
 ```
 
-```{r}
+```{r final-siamese}
 #| message: false
 #| warning: false
 #| include: false
@@ -1521,7 +1520,7 @@ final_siamese <- build_siamese(train = train, valid = valid, n_filters = n_filte
 
 ```
 
-```{r}
+```{r create-test-pairs}
 
 # create different pairs for test set
 set.seed(25)
@@ -1632,7 +1631,7 @@ table(test_pair_type, session[test_pairs[,1]] == session[test_pairs[,2]])
 ######--------------------------------------------------------------------------
 ```
 
-```{r}
+```{r predict-siamese-test}
 
 
 # final eval using tuned parameters and other final mod choices
@@ -1641,7 +1640,7 @@ test_distance <- as.numeric(predict(final_siamese$siamese_model,list(test$left,t
 
 ```
 
-```{r}
+```{r siamese-test-results}
 true_same <- as.logical(test$y[, 1])
 
 predicted_same <- test_distance < final_siamese$threshold
@@ -1771,7 +1770,7 @@ plot(roc_object, main = "Siamese Network ROC Curve")
 
 ```
 
-```{r}
+```{r image-examples}
 # ------------------------------------------------------------
 # Find one incorrect prediction per writer-session category and one per digit
 
