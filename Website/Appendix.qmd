@@ -5,4 +5,10 @@ format: html
 editor: visual
 ---
 
-## Appendix
+The higher training loss visible in @fig-siamese-1-layer-epochs may partly be explained by regularization. Dropout (0.2) randomly disables units during training, making learning more difficult, whereas dropout is switched off during validation. L2 regularization (nu = 0.001) may also contribute to a higher training loss. Furthermore, the validation data may be easier to predict than the training data due to differences in session composition. Therefore, a lower validation loss does not necessarily indicate a problem or data leakage.
+
+![Contrastive loss as a function of epochs for a one-hidden layer siamese network.](siamese_1_layer_epochs.png){#fig-siamese-1-layer-epochs width="100%"}
+
+![Incorrect prediction during a different writer-same session combination.](siamese_error3.png){#fig-siamese-error1 width="80%"}
+
+![Incorrect prediction during a different writer-different session combination](siamese_error8.png){#fig-siamese-error2 width="80%"}
