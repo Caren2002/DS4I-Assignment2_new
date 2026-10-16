@@ -881,13 +881,63 @@ build_siamese <- function(train, valid,
 siamese_1_layer <- build_siamese(train = train, valid = valid, double_layer = FALSE)
 
 
+## Test siamese with only 2 hidden layers
+siamese_2_layer <- build_siamese(train = train, valid = valid, double_layer = TRUE)
+
+
 png(filename = "siamese_1_layer_epochs.png", width = 1200, height = 600, res = 150)
 plot(siamese_1_layer$history)
 dev.off()
 
 
-## Test siamese with only 2 hidden layers
-siamese_2_layer <- build_siamese(train = train, valid = valid, double_layer = TRUE)
+# fit many models instead of just 1 ----------------------
+
+# Seeds for 3 repetitions
+seeds <- c(8, 10, 27)
+
+# Store results
+layer_results <- data.frame(
+  architecture = c("1 layer", "2 layers"),
+  balanced_accuracy = NA_real_,
+  val_loss = NA_real_
+)
+
+# Run each architecture 3 times
+for (i in 1:2) {
+
+  ba_reps <- numeric(length(seeds))
+  loss_reps <- numeric(length(seeds))
+
+  for (j in seq_along(seeds)) {
+
+    cat("Architecture:", layer_results$architecture[i],
+        "| Repetition:", j,
+        "| Seed:", seeds[j], "\n")
+
+    result <- build_siamese(
+      train = train,
+      valid = valid,
+      double_layer = (i == 2),
+      seed = seeds[j]
+    )
+
+    ba_reps[j] <- as.numeric(
+      result$validation_result$balanced_accuracy
+    )
+
+    loss_reps[j] <- as.numeric(
+      tail(result$history$metrics$val_loss, 1)
+    )
+  }
+
+  # Average across the 3 repetitions
+  layer_results$balanced_accuracy[i] <- mean(ba_reps)
+  layer_results$val_loss[i] <- mean(loss_reps)
+}
+
+# View average results
+layer_results
+
 
 # Two hidden layers much better. Tune other parameters based on 2 hidden layers
 ```
