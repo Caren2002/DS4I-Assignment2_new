@@ -18,7 +18,7 @@ To build and evaluate our models, the data set is partitioned into three distinc
 
 This session-based partitioning is intentional. Because the objective is to recognize each person's handwriting across different writing conditions, every participant must be represented in the training data. Furthermore, because both the Convolutional Neural Network (CNN) and the Siamese network are evaluated and compared directly against one another, maintaining a consistent data split ensures a fair performance comparison across both architectures.
 
-# Explanatory Data Analysis
+# Exploratory Data Analysis
 
 The aim of this section is to explore the handwriting images and metadata, compare examples across people, digits and sessions, and identify visible sources of variation and limitations of the simulated data.
 
@@ -26,6 +26,10 @@ The aim of this section is to explore the handwriting images and metadata, compa
 #| include: false
 library(dplyr)
 library(knitr)
+library(keras3)
+library(pROC)
+use_backend("tensorflow")
+#reticulate::py_require(c("tensorflow==2.19.0", "keras==3.11.3"))
 
 data <- readRDS("handwriting.rds")
 meta <- data$metadata
@@ -44,65 +48,6 @@ display_image <- function(img, title = "") {
 }
 ```
 
-### Variance decomposition: writer, session or digit?
-
-```{r}
-# Shared objects (also used by the CNN section)
-meta <- data$metadata
-X    <- matrix(data$images, nrow = 25000) / 255      # one row per image (784 pixels)
-
-# Four simple summaries per image: height, width, horizontal and vertical centre of mass
-img  <- data$images[,,,1] / 255
-feat <- t(apply(img, 1, function(m) {
-  on <- m > 0.3
-  r  <- which(rowSums(on) > 0)
-  cc <- which(colSums(on) > 0)
-  c(h = diff(range(r)) + 1, w = diff(range(cc)) + 1,
-    cx = sum(m * col(m)) / sum(m), cy = sum(m * row(m)) / sum(m))
-}))
-
-feat_df <- data.frame(meta, feat)
-feat_df[c("person_id", "session", "digit")] <-
-  lapply(feat_df[c("person_id", "session", "digit")], factor)
-
-# Percentage of each measurement's variance explained by each source
-for (v in c("h", "w", "cx", "cy")) {
-  ss <- summary(aov(reformulate("digit + person_id + session + person_id:session", v),
-                    data = feat_df))[[1]]
-  cat("\n", v, "\n")
-  print(round(100 * ss[["Sum Sq"]] / sum(ss[["Sum Sq"]]), 1) |>
-          setNames(trimws(rownames(ss))))
-}
-```
-
-### Distances between a writer's sessions and between writers
-
-```{r}
-dist_table <- function(M) {
-  d4  <- meta$session %in% 1:4
-  key <- with(meta[d4, ], paste(person_id, digit, session))
-  Cm  <- rowsum(M[d4, ], key) / 50          # average image of each writer x digit x session cell
-  k   <- do.call(rbind, strsplit(rownames(Cm), " "))
-  info <- data.frame(p = k[,1], d = k[,2], s = k[,3])
-  sapply(0:4, function(dd) {
-    i <- which(info$d == dd)                # one digit at a time: 20 writers x 4 sessions = 80 cells
-    D <- as.matrix(dist(Cm[i, ]))           # distance between every pair of cells
-    a <- info[i, ]
-    up <- upper.tri(D)                      # count each pair once
-    sp <- outer(a$p, a$p, "==")             # TRUE if the pair has the same writer
-    ss <- outer(a$s, a$s, "==")             # TRUE if the pair has the same session
-    c(same_writer_diff_session = mean(D[up & sp & !ss]),
-      diff_writer_same_session = mean(D[up & !sp & ss]),
-      diff_writer_diff_session = mean(D[up & !sp & !ss]))
-  })
-}
-dtab <- dist_table(X)
-colnames(dtab) <- paste("digit", 0:4)
-round(dtab, 2)
-round(dtab["same_writer_diff_session", ] / dtab["diff_writer_diff_session", ], 2)
-```
-
-### Dataset and Metadata Overview
 ## Data set and Metadata Overview
 
 ```{r}
@@ -420,6 +365,16 @@ Across all digits, a visual evaluation reveals distinctive structural and geomet
 
 Visual analysis indicates noticeable variations in handwriting across different individuals. Even when writing the same digit, writers demonstrate distinct differences in shape, scale, stroke direction, and style. However, individual handwriting also displays consistent stylistic patterns; as shown in the previous section, a single writer often applies similar structural and graphical characteristics across different digits.
 
+## Data Limitations and Potential Problems
+
+There some limitations with the data and this may cause potential problems when we are building our prediction models. Firstly, the data we are using is simulated and images do not contain real handwriting, the data lacks the organic irregularities, noise complexities, and unpredictable strokes found in real world handwriting. Secondly, the data set is constrained to five digits. It does not cover the full range of numeric digits or alphabet characters which limits how well the findings generalize to full handwriting recognition tasks.
+
+Another potential issue with the data is the rigid structure and balance of the data. The data set has a well balanced structure which lacks the organic class imbalances and variable sample sizes typically characteristics of real world data collection. The variation in the independent sessions are artificially bounded into 5 discrete blocks rather than capturing a continuous, organic evolution pf a persons handwriting over time. Lastly, the resolution in the pixels is relatively low thus fine structural details, subtle pen-pressure changes, and intricate loop formations may be lost or pixeleted.
+
+These problems have the potential to cause over fitting in the models. The way the data is structured has the potential to over inflate the accuracy during training and validation. Since the images are low resolution, the models can easily over fit to pixel-level noise or minor rendering artifacts introduced by the simulation engine, treating random pixel patterns as meaningful writer features rather than focusing on the actual stroke dynamic and shapes.
+
+## Preparing the data for modelling (shared by both models)
+
 ```{r}
 # Scale pixel values from [0, 255] to [0, 1]
 images <- data$images / 255
@@ -459,13 +414,6 @@ run_searches <- FALSE
 
 cnn_seeds <- c(123, 1, 2)    # three random seeds for every tuning comparison
 tol_ce    <- 0.30            # cross-entropy tolerance used to choose between candidates
-## Data Limitations and Potential Problems
-
-There some limitations with the data and this may cause potential problems when we are building our prediction models. Firstly, the data we are using is simulated and images do not contain real handwriting, the data lacks the organic irregularities, noise complexities, and unpredictable strokes found in real world handwriting. Secondly, the data set is constrained to five digits. It does not cover the full range of numeric digits or alphabet characters which limits how well the findings generalize to full handwriting recognition tasks.
-
-Another potential issue with the data is the rigid structure and balance of the data. The data set has a well balanced structure which lacks the organic class imbalances and variable sample sizes typically characteristics of real world data collection. The variation in the independent sessions are artificially bounded into 5 discrete blocks rather than capturing a continuous, organic evolution pf a persons handwriting over time. Lastly, the resolution in the pixels is relatively low thus fine structural details, subtle pen-pressure changes, and intricate loop formations may be lost or pixeleted.
-
-These problems have the potential to cause over fitting in the models. The way the data is structured has the potential to over inflate the accuracy during training and validation. Since the images are low resolution, the models can easily over fit to pixel-level noise or minor rendering artifacts introduced by the simulation engine, treating random pixel patterns as meaningful writer features rather than focusing on the actual stroke dynamic and shapes. \# CNN
 
 # Settings found by the searches below (used when run_searches is FALSE)
 best1    <- data.frame(act = "tanh", lr = 0.0001, drop = 0.7)     # Stage 1 winner
@@ -968,7 +916,6 @@ all(data$metadata$digit[valid_pairs[, 1]] ==
 
 ```
 
-
 ```{r metric-functions}
 #| message: false
 #| warning: false
@@ -990,7 +937,6 @@ balanced_accuracy_at <- function(cut) {
 }
 
 ```
-
 
 ```{r siamese-function}
 #| include: false
@@ -1160,7 +1106,6 @@ build_siamese <- function(train, valid,
 }
 ######--------------------------------------------------------------------------
 ```
-
 
 ```{r n-layer-tuning}
 
