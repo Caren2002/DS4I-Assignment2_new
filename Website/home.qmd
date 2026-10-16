@@ -1,0 +1,8 @@
+---
+title: "Assignment 2: Image Classification using Neural Networks"
+subtitle: "Data Science for Industry"
+format: html
+editor: visual
+---
+
+## HOME: Assignment 2
