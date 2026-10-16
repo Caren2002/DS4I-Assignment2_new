@@ -4,7 +4,7 @@ format: pdf
 editor: visual
 ---
 
-## Introduction
+# Introduction
 
 This study utilizes a simulated dataset of 25,000 handwritten digits collected from 20 participants. Each individual provided 1,250 samples split across 5 sessions, with 50 samples recorded per session. Handwritten samples naturally exhibit intra-writer variability due to inherent personal differences and changing environmental conditions, such as time constraints during exams compared to relaxed note-taking. Nevertheless, underlying individual traits remain consistent, enabling writer identification.
 
@@ -12,13 +12,13 @@ To investigate this data set, we address two core questions: first, whether we c
 
 To investigate the first research question, we will construct a Convolutional Neural Network (CNN) designed to classify handwritten digit images and assign them to one of the 20 individuals in the data set. To explore the second question, we will develop a Siamese neural network to determine whether two given images originate from the same writer or different writers. Finally, these two models will be evaluated and compared to establish which architecture yields superior performance in terms of accuracy and precision.
 
-## Data Splitting
+# Data Splitting
 
 To build and evaluate our models, the data set is partitioned into three distinct subsets: a training set used to construct the models, a validation set used to evaluate performance and tune hyper-parameters, and a test set for final assessment. Rather than splitting randomly, the data is partitioned by session: **Sessions 1 to 3** form the training set, **Session 4** serves as the validation set, and **Session 5** comprises the test set.
 
 This session-based partitioning is intentional. Because the objective is to recognize each person's handwriting across different writing conditions, every participant must be represented in the training data. Furthermore, because both the Convolutional Neural Network (CNN) and the Siamese network are evaluated and compared directly against one another, maintaining a consistent data split ensures a fair performance comparison across both architectures.
 
-## Explanatory Data Analysis
+# Explanatory Data Analysis
 
 The aim of this section is to explore the handwriting images and metadata, compare examples across people, digits and sessions, and identify visible sources of variation and limitations of the simulated data.
 
@@ -44,7 +44,7 @@ display_image <- function(img, title = "") {
 }
 ```
 
-### Data set and Metadata Overview
+## Data set and Metadata Overview
 
 ```{r}
 #| echo: false
@@ -104,7 +104,7 @@ kable(
 
 The metadata identify the writer (`person_id`), the digit class (`digit`), and the recording session (`session`). These variables allow us to compare writers while holding the digit and session fixed, compare sessions for the same writer and digit, and compare different digits written by the same person.
 
-### Quantitative meta data analysis
+## Quantitative meta data analysis
 
 ```{r}
 #| echo: false
@@ -163,7 +163,7 @@ To evaluate the stability and discriminative power of spatial feature measuremen
 
 Overall, the variance decomposition yields several key insights regarding feature stability and writer discriminability. Main session effects contribute less than 1% across all spatial metrics (0.1%–0.6%), indicating that no single recording session exhibits global systematic bias or baseline shift, which supports the assumption that sessions represent comparable sampling conditions. Furthermore, inter-individual variance (**Person ID**) constitutes a major proportion of total variation for height, width, and horizontal positioning, confirming that individual writers possess measurable, repeatable handwriting characteristics that generalize across distinct sessions. Finally, handwriting variations between sessions manifest primarily as spatial positional shifts ($cx, cy$) rather than structural or dimensional resizing ($h, w$).
 
-#### Euclidean Distance Analysis
+### Euclidean Distance Analysis
 
 ```{r}
 #| echo: false
@@ -208,7 +208,7 @@ Because distances are measured in pixel units, relative comparisons across condi
 
 However, this distinction is moderate. The ratio of same-writer to different-writer distance ranges tightly between $0.80$ and $0.83$ across all digits, showing that session-to-session variation accounts for roughly $80\%$ of the distance to another writer's sample. Additionally, distances between different writers are virtually identical within the same session ($7.85$–$8.78$) and across different sessions ($7.85$–$8.79$). This confirms the absence of a shared session effect, directly supporting previous variance decomposition findings ($<1\%$ session variance) and validating the decision to hold out entire sessions for testing.
 
-### Variation between people
+## Variation between people
 
 Firstly, we will compare all 20 peoples handwriting across one session. The main goal of this exercise is to check whether there are any visible variations among peoples handwriting within a particular session. The first image will compare the people writing the digit 0 in session 1.
 
@@ -322,7 +322,7 @@ par(mfrow = c(1, 1))
 
 A visual examination of handwriting for the digit '0' across five sessions reveals distinct, highly consistent stylistic characteristics within individual writers. Person 1 consistently produces a rounded digit featuring a noticeably flattened, vertical edge along the left side. In contrast, Person 9 exhibits a centered, overall rounded digit structure across all sessions. Finally, Person 18 displays an elongated, oval-shaped digit that is systematically tilted to the right. Despite slight session-to-session variations, each writer maintains a clear, unique visual signature across all five sessions.
 
-### Variation across digits for one person
+## Variation across digits for one person
 
 Finally, we will assess the within person variation of the different digits. The main goal of this is to assess whether there are similarities between a persons handwriting for different digits. This section is important because the Siamese and CNN networks will be tasked identifying similarities within the different digits.
 
@@ -359,7 +359,7 @@ par(mfrow = c(1, 1))
 
 Across all digits, a visual evaluation reveals distinctive structural and geometric features that define each individual's overall writing style. Person 1 produces centered digits occupying consistent relative proportions, where digits 1, 2, and 3 share a similar curved, arch-like top loop, and digits 1 and 2 feature flat horizontal base strokes. Similarly, Person 9 exhibits overlapping structural traits across digits, including a smoothly curved top arch across digits 1, 2, and 3, flat horizontal base strokes on digits 1 and 2, and enclosed loop structures within digits 0 and 4. In contrast, Person 18 displays strong slanted and angular characteristics, with digits 1 through 4 featuring pronounced rightward slants and sharp, linear strokes rather than smooth curves, alongside flat horizontal baselines (digits 1 and 2) and sharp horizontal cross-strokes across digits 1, 2, and 4.
 
-### Data Limitations and Potential Problems
+## Data Limitations and Potential Problems
 
 There some limitations with the data and this may cause potential problems when we are building our prediction models. Firstly, the data we are using is simulated and images do not contain real handwriting, the data lacks the organic irregularities, noise complexities, and unpredictable strokes found in real world handwriting. Secondly, the data set is constrained to five digits. It does not cover the full range of numeric digits or alphabet characters which limits how well the findings generalize to full handwriting recognition tasks.
 
@@ -368,6 +368,15 @@ Another potential issue with the data is the rigid structure and balance of the 
 These problems have the potential to cause over fitting in the models. The way the data is structured has the potential to over inflate the accuracy during training and validation. Since the images are low resolution, the models can easily over fit to pixel-level noise or minor rendering artifacts introduced by the simulation engine, treating random pixel patterns as meaningful writer features rather than focusing on the actual stroke dynamic and shapes.
 
 \newpage
+
+# Methods and Results
+All analyses were conducted in R (R Core Team, 2026), and used the following packages:  
+
+* keras3 (Kalinowski et al., 2026) for neural network model building and training  
+* tidyverse (Wickham et al., 2019) for convenient data manipulation  
+* imager (Barthelme, 2025) for image processing and manipulation  
+* pROC (Xavier et al., 2011) for calculation of the area under the curve  
+* reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
 
 ## Convolutional Neural Network
 
@@ -593,3 +602,50 @@ The higher training loss visible in @fig-siamese-1-layer-epochs may partly be ex
 ![Incorrect prediction during a different writer-same session combination.](siamese_error3.png){#fig-siamese-error1 width="80%"}
 
 ![Incorrect prediction during a different writer-different session combination](siamese_error8.png){#fig-siamese-error2 width="80%"}
+
+
+
+\newpage
+# References
+
+* R Core Team (2026). _R: A Language and Environment for Statistical Computing_. R
+  Foundation for Statistical Computing, Vienna, Austria. doi:10.32614/R.manuals
+  <https://doi.org/10.32614/R.manuals>. <https://www.R-project.org/>.  
+  
+
+* Kalinowski T, Allaire J, Chollet F (2026). _keras3: R Interface to 'Keras'_.
+  doi:10.32614/CRAN.package.keras3 <https://doi.org/10.32614/CRAN.package.keras3>. R package
+  version 1.5.1, <https://CRAN.R-project.org/package=keras3>.  
+  
+  
+* Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A,
+  Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D,
+  Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to
+  the tidyverse.” _Journal of Open Source Software_, *4*(43), 1686. doi:10.21105/joss.01686
+  <https://doi.org/10.21105/joss.01686>.  
+  
+  
+* Barthelme S (2025). _imager: Image Processing Library Based on 'CImg'_.
+  doi:10.32614/CRAN.package.imager <https://doi.org/10.32614/CRAN.package.imager>. R package
+  version 1.0.8, <https://CRAN.R-project.org/package=imager>.  
+  
+  
+* Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek,
+  Jean-Charles Sanchez and Markus Müller (2011). pROC: an open-source package for R and S+
+  to analyze and compare ROC curves. BMC Bioinformatics, 12, p. 77.  DOI:
+  10.1186/1471-2105-12-77 <http://www.biomedcentral.com/1471-2105/12/77/>  
+  
+  
+  
+* Kalinowski T, Ushey K, Allaire J, Tang Y (2026). _reticulate: Interface to 'Python'_.
+  doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R
+  package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.  
+  
+  
+  
+* OpenAI (2026) ChatGPT [Large language model]. Available at: https://chatgpt.com/  (Accessed: 16 October 2026).  
+
+
+
+
+
