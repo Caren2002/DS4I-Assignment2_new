@@ -369,7 +369,7 @@ These problems have the potential to cause over fitting in the models. The way t
 
 # Siamese neural network
 
-```{r}
+```{r create-foundational-functions}
 
 set.seed(25)
 
