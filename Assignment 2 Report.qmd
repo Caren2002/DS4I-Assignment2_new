@@ -525,7 +525,10 @@ Table. Test performance of the Siamese network based on same and different sessi
 
 
 
-@tbl-results-writer-session displays the results segregated into writer-session combinations. The model achieved high accuracy when classifying pairs from the same session, regardless of whether the images belonged to the same writer. Accuracy was 99.8% for the same-writer, same-session combination and 98.4% for different-writer, same-session pairs. Similarly, different-writer pairs from different sessions achieved 98.7% accuracy. However, accuracy dropped to 37.3% for the same writer across different sessions. This suggests that variation in handwriting between sessions posed a substantial challenge, even when the writer's identity remained unchanged.  
+@tbl-results-writer-session displays the results segregated into writer-session combinations. Sensitivity, specificity and balanced accuracy could not all be calculated for each of the four writer–session combinations because the test pairs within each combination belonged exclusively to one true class. The same-writer combinations contained only pairs written by the same individual, whereas the different-writer combinations contained only pairs written by different individuals. Consequently, sensitivity could be calculated for the same-writer combinations, but specificity was undefined. Conversely, specificity could be calculated for the different-writer combinations, but sensitivity was undefined. Since balanced accuracy is the average of sensitivity and specificity, it could not be calculated for any individual writer–session combination. Accuracy was therefore used to compare classification performance across the four combinations, while sensitivity, specificity and balanced accuracy were calculated for the broader session-based groups, which contained both same-writer and different-writer pairs.  
+
+
+The model achieved high accuracy when classifying pairs from the same session, regardless of whether the images belonged to the same writer. Accuracy was 99.8% for the same-writer, same-session combination and 98.4% for different-writer, same-session pairs (@fig-siamese-error1 in the Appendix shows an example of an incorrect prediction for different writer, same session). Similarly, different-writer pairs from different sessions achieved 98.7% accuracy. However, accuracy dropped to 37.3% for the same writer across different sessions. This suggests that variation in handwriting between sessions posed a substantial challenge, even when the writer's identity remained unchanged. An example of an erroneous prediction can be seen in @fig-siamese-error2 (Appendix).  
 
 ::: {#tbl-results-writer-session}
 |pair_type                           |    n| correct| accuracy|
@@ -586,15 +589,24 @@ Table. Test classification performance per writer
 
 
 
+Overall, the analysis highlights the importance of distinguishing between performance under familiar conditions and generalisation across varying conditions. The model's high specificity but lower sensitivity suggests a tendency to classify pairs as belonging to different writers, particularly when handwriting samples originate from different sessions. This limits its reliability for cross-session writer identification.
+Furthermore, differences in performance across writers suggest that the model may not capture individual handwriting characteristics equally well. However, these differences should be interpreted cautiously, given the limited number of test comparisons per writer.
+
 
 ## Discussion
 
 
+In the Siamese neural network, the training, validation and test data sets differ in their representation of session variability. The training data contain image pairs from multiple sessions, whereas the validation data are restricted to session 4. The test data include both within-session pairs and cross-session pairs, with cross-session comparisons incorporating images from sessions 1–4 and session 5. Consequently, the validation results may not fully reflect the model's ability to generalize across sessions. This is evident in Table @tbl-results-session, where balanced accuracy decreases to 0.680 for cross-session pairs, primarily because sensitivity falls to 0.373. This suggests that the model frequently fails to identify pairs from the same writer when their handwriting samples originate from different sessions.
+
+
+With regards to model performance, since the same-writer and different-writer classes are balanced, a balanced accuracy of 0.50 provides a useful baseline for random guessing. The high validation performance indicates that the model can distinguish between the two classes under the validation conditions. However, the lower cross-session performance suggests that the model struggles to identify the same writer when handwriting samples originate from different sessions. Consequently, the validation results may overstate the model's practical reliability across sessions. Furthermore, repeatedly selecting hyperparameters using the same validation set may lead to overly optimistic estimates of validation performance.
+
+
+\newpage
+
 
 ## Appendix
 
-![Example image pair.](siamese_error4.png){#fig-siamese-error1 width=80%}
 
-
-![Example image pair.](siamese_error3.png){#fig-siamese-error2 width=80%}
-![Example image pair.](siamese_error8.png){#fig-siamese-error3 width=80%}
+![Example image pair.](siamese_error3.png){#fig-siamese-error1 width=80%}
+![Example image pair.](siamese_error8.png){#fig-siamese-error2 width=80%}
