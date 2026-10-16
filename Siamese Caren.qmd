@@ -964,7 +964,7 @@ act_func2 <- 'tanh'
 ```
 
 
-```{r}
+```{r siamese-filter-tune}
 
 
 
@@ -1003,6 +1003,10 @@ for (i in seq_len(nrow(grid_filter))) {
 # View results
 grid_filter_results
 
+```
+
+
+```{r}
 
 # Set up 2 rows x 3 columns
 par(mfrow = c(2, 3), mar = c(4, 4, 3, 1))
