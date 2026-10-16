@@ -4,17 +4,18 @@ format: html
 editor: visual
 ---
 
-::: {.hero-banner}
-::: {.hero-content}
+:::::: hero-banner
+::::: hero-content
 [Data Science for Industry]{.badge-course}
 
 # Image Classification using Neural Networks
-### Assignment 2 Report
 
-::: {.authors-container}
-::: {.author-card}
+### Assignment 2 Website
+
+:::: authors-container
+::: author-card
 **Authors:** Una Fundzo • Miska Ramraj • Caren Pahla
 :::
-:::
-:::
-:::
+::::
+:::::
+::::::
