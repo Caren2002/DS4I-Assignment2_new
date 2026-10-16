@@ -6,7 +6,7 @@ editor: visual
 
 ## Introduction
 
-This study utilizes a simulated dataset of 25,000 handwritten digits collected from 20 participants. Each individual provided 1,250 samples split across 5 sessions, with 50 samples recorded per session. Handwritten samples naturally exhibit intra-writer variability due to inherent personal differences and changing environmental conditions, such as time constraints during exams compared to relaxed note-taking. Nevertheless, underlying individual traits remain consistent, enabling writer identification.
+This study utilizes a simulated data set of 25,000 handwritten digits collected from 20 participants. Each individual provided 1,250 samples split across 5 sessions, with 50 samples recorded per session. Handwritten samples naturally exhibit intra-writer variability due to inherent personal differences and changing environmental conditions, such as time constraints during exams compared to relaxed note-taking. Nevertheless, underlying individual traits remain consistent, enabling writer identification.
 
 To investigate this data set, we address two core questions: first, whether we can identify a writer across different sessions, and second, whether we can determine if two arbitrary handwritten digits belong to the same person.
 
@@ -509,7 +509,7 @@ The optimal distance threshold was found to be 0.247, meaning that 2 images with
 
 ::: {#tbl-results-session}
 | session_type      |    n | accuracy | sensitivity | specificity | balanced_accuracy |
-|:-----------|-----------:|-----------:|-----------:|-----------:|-----------:|
+|:------------------|-----:|---------:|------------:|------------:|------------------:|
 | Same session      | 2000 |    0.947 |       0.899 |       0.995 |             0.947 |
 | Different session | 2000 |    0.554 |       0.112 |       0.997 |             0.554 |
 
