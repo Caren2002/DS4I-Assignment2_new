@@ -1,5 +1,6 @@
 ---
 title: "Discussion"
+subtitle: "Data Science for Industry"
 format: html
 editor: visual
 ---

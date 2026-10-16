@@ -1,5 +1,6 @@
 ---
-title: "Siamese"
+title: "Siamese Neural Network"
+subtitle: "Data Science for Industry"
 format: html
 editor: visual
 ---
