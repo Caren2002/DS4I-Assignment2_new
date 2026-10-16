@@ -1370,3 +1370,139 @@ plot(roc_object, main = "Siamese Network ROC Curve")
 
 ```
 
+
+```{r}
+# ------------------------------------------------------------
+# Find one incorrect prediction per writer-session category and one per digit
+
+set.seed(25)
+
+# Identify incorrectly classified pairs
+incorrect <- which(predicted_same != true_same)
+
+# Select one random incorrect pair from a set of rows
+choose_error <- function(rows, category, value) {
+  
+  errors <- rows[rows %in% incorrect]
+  
+  if (length(errors) == 0) {
+    message("No incorrect predictions for: ", category, " = ", value)
+    return(NULL)
+  }
+  
+  selected <- sample(errors, 1)
+  
+  data.frame(
+    row = selected,
+    category = category,
+    value = as.character(value)
+  )
+}
+
+# One example for each writer-session combination
+pair_types <- c("Same writer, same session",
+  "Same writer, different session",
+  "Different writer, same session",
+  "Different writer, different session")
+
+writer_session_examples <- do.call(rbind, lapply(pair_types, function(p) {
+  choose_error(which(test_pair_type == p), "Writer-session", p)
+}))
+
+# One example for each digit
+digit_examples <- do.call(rbind, lapply(0:4, function(d) {
+  choose_error(which(test$digit == d), "Digit", d)
+}))
+
+# Combine the selected examples
+examples <- do.call(rbind, Filter(Negate(is.null),
+  list(writer_session_examples, digit_examples)))
+
+rownames(examples) <- NULL
+
+# Summarise the incorrect predictions -----------------------
+
+example_details <- do.call(rbind, lapply(seq_len(nrow(examples)), function(j) {
+  
+  r <- examples$row[j]
+  i <- test_pairs[r, 1]
+  k <- test_pairs[r, 2]
+  
+  data.frame(
+    category = examples$category[j],
+    value = examples$value[j],
+    pair_row = r,
+    digit = digit[i],
+    writer_left = person_id[i],
+    session_left = session[i],
+    writer_right = person_id[k],
+    session_right = session[k],
+    true_label = ifelse(true_same[r], "Same writer", "Different writers"),
+    predicted_label = ifelse(
+      predicted_same[r], "Same writer", "Different writers"
+    ),
+    distance = test_distance[r]
+  )
+}))
+
+print(example_details, row.names = FALSE)
+
+# Plot the two images in each selected pair -------------------------
+
+
+plot_pair_example <- function(r, heading = "") {
+  
+  i <- test_pairs[r, 1]
+  k <- test_pairs[r, 2]
+  
+  # Extract each 28 x 28 image
+  img_left <- images[i, , , 1]
+  img_right <- images[k, , , 1]
+  
+  # True and predicted labels
+  actual <- ifelse(true_same[r], "Same writer", "Different writers")
+  predicted <- ifelse(
+    predicted_same[r], "Same writer", "Different writers"
+  )
+  
+  # Display images side by side
+  old_par <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1), oma = c(0, 0, 2, 0))
+  
+  image(
+    x = 1:28, y = 1:28,
+    z = t(img_left[28:1, ]),
+    col = gray.colors(256, start = 0, end = 1),
+    axes = FALSE, xlab = "", ylab = "", asp = 1,
+    main = paste0("Writer ", person_id[i],
+                  ", session ", session[i]))
+  
+  image(
+    x = 1:28, y = 1:28,
+    z = t(img_right[28:1, ]),
+    col = gray.colors(256, start = 0, end = 1),
+    axes = FALSE, xlab = "", ylab = "", asp = 1,
+    main = paste0("Writer ", person_id[k],
+                  ", session ", session[k]))
+  
+  # Centred above both images
+  mtext(paste0(heading, "Threshold: ", round(final_siamese$threshold,3), 
+               " | True: ", actual, " | Predicted: ", predicted, 
+               " | Distance: ", round(test_distance[r], 3)), 
+        side = 3, outer = TRUE, line = 0.5, cex = 0.9)
+  
+  par(old_par)
+}
+
+# Plot each selected examples
+
+for (j in seq_len(nrow(examples))) {
+  image_name <- paste0("siamese_error", j, ".png")
+  png(filename = image_name, width = 1200, height = 600, res = 150)
+  
+  plot_pair_example(
+    examples$row[j])
+  dev.off()
+}
+
+```
+
