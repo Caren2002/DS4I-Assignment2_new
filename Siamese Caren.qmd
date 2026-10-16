@@ -370,6 +370,7 @@ These problems have the potential to cause over fitting in the models. The way t
 # Siamese neural network
 
 ```{r create-foundational-functions}
+#| echo: false
 
 set.seed(25)
 
@@ -468,7 +469,10 @@ all(data$metadata$digit[valid_pairs[, 1]] ==
 
 ```
 
-```{r}
+```{r metric-functions}
+#| message: false
+#| warning: false
+#| include: false
 
 #loss function (y = 1 means same writer) 
 contrastive_loss <- function(y, distance) {
@@ -487,7 +491,8 @@ balanced_accuracy_at <- function(cut) {
 
 ```
 
-```{r}
+```{r siamese-function}
+#| include: false
 build_siamese <- function(train, valid,
                           n_filters = 16,
                           kernel_size = 3,
@@ -655,7 +660,7 @@ build_siamese <- function(train, valid,
 ######--------------------------------------------------------------------------
 ```
 
-```{r}
+```{r n-layer-tuning}
 
 
 ## Test siamese with only 1 hidden layer
