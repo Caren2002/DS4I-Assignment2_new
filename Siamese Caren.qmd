@@ -1225,6 +1225,9 @@ grid_results_nu_lr_dr
 
 
 ```{r}
+#| message: false
+#| warning: false
+#| include: false
 
 # Fit final model --------------------------------------------------------------
 # use tuned parameter values and activation function combinations
