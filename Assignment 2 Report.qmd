@@ -18,7 +18,7 @@ To build and evaluate our models, the data set is partitioned into three distinc
 
 This session-based partitioning is intentional. Because the objective is to recognize each person's handwriting across different writing conditions, every participant must be represented in the training data. Furthermore, because both the Convolutional Neural Network (CNN) and the Siamese network are evaluated and compared directly against one another, maintaining a consistent data split ensures a fair performance comparison across both architectures.
 
-# Explanatory Data Analysis
+# Exploratory Data Analysis
 
 The aim of this section is to explore the handwriting images and metadata, compare examples across people, digits and sessions, and identify visible sources of variation and limitations of the simulated data.
 
@@ -46,104 +46,32 @@ display_image <- function(img, title = "") {
 
 ## Data set and Metadata Overview
 
-```{r}
-#| echo: false
-
-
-
-# 1. Extract values dynamically from your data structure
-unique_subjects <- paste(range(data$metadata$person_id), collapse = " - ")
-n_subjects      <- length(unique(data$metadata$person_id))
-
-unique_sessions <- paste(range(data$metadata$session), collapse = " - ")
-n_sessions      <- length(unique(data$metadata$session))
-
-unique_digits   <- paste(range(data$metadata$digit), collapse = " - ")
-n_digits        <- length(unique(data$metadata$digit))
-
-total_samples   <- nrow(data$metadata)
-
-# Image Dimensions & Color Channels
-img_shape       <- dim(data$images)
-img_res         <- paste0(img_shape[1], " x ", img_shape[2], " pixels")
-color_channels  <- if (length(img_shape) > 2) paste(img_shape[3], "Channel(s)") else "1 (Grayscale)"
-
-# Samples per digit summary string
-samples_per_digit <- paste(table(data$metadata$digit), collapse = ", ")
-
-# 2. Construct the Summary Data Frame
-metadata_summary <- data.frame(
-  `Metadata Attribute` = c(
-    "Person ID Range (`person_id`)",
-    "Session ID Range (`session`)",
-    "Digit Classes (`digit`)",
-    "Total Dataset Size ($N$)",
-    "Image Resolution (Height x Width)",
-    "Color Channels",
-    "Class Distribution (Digits 0 to 4)"
-  ),
-  `Value / Description` = c(
-    paste0(unique_subjects, " (", n_subjects, " unique subjects)"),
-    paste0(unique_sessions, " (", n_sessions, " distinct sessions)"),
-    paste0(unique_digits, " (", n_digits, " classes)"),
-    paste0(total_samples, " images"),
-    img_res,
-    color_channels,
-    paste0("Balanced (", samples_per_digit, " samples each)")
-  ),
-  check.names = FALSE
-)
-
-# 3. Render using kable
-kable(
-  metadata_summary,
-  booktabs = TRUE,
-  caption = "Summary of Dataset Metadata and Image Dimensions"
-)
-```
+::: {#tbl-dataset_summary}
+| Metadata Attribute | Value / Description |
+|:-----------------------------------|:-----------------------------------|
+| Person ID Range (`person_id`) | 1 - 20 (20 unique subjects) |
+| Session ID Range (`session`) | 1 - 5 (5 distinct sessions) |
+| Digit Classes (`digit`) | 0 - 4 (5 classes) |
+| Total Dataset Size ($N$) | 25000 images |
+| Image Resolution (Height x Width) | 28 pixels x 28 pixels |
+| Color Channels | 28 Channel(s) |
+| Class Distribution (Digits 0 to 4) | Balanced (5000, 5000, 5000, 5000, 5000 samples each) |
+Table. Summary of Dataset Metadata and Image Dimensions
+:::
 
 The metadata identify the writer (`person_id`), the digit class (`digit`), and the recording session (`session`). These variables allow us to compare writers while holding the digit and session fixed, compare sessions for the same writer and digit, and compare different digits written by the same person.
 
 ## Quantitative meta data analysis
 
-```{r}
-#| echo: false
-#Building the features
-
-img  <- data$images[,,,1] / 255
-feat <- t(apply(img, 1, function(m) {
-  on <- m > 0.3
-  r  <- which(rowSums(on) > 0)
-  cc <- which(colSums(on) > 0)
-  c(h = diff(range(r)) + 1, w = diff(range(cc)) + 1,
-    cx = sum(m * col(m)) / sum(m), cy = sum(m * row(m)) / sum(m))
-}))
-
-#Preparing for analysis
-
-df <- data.frame(meta, feat)
-df[c("person_id", "session", "digit")] <- lapply(df[c("person_id", "session", "digit")], factor)
-
-# Variance decomposition
-vars <- c("h", "w", "cx", "cy")
-res_list <- list()
-
-for (v in vars) {
-  ss <- summary(aov(reformulate("digit + person_id + session + person_id:session", v),
-                    data = df))[[1]]
-  
-  # Calculate percentage of variance
-  pct <- round(100 * ss[["Sum Sq"]] / sum(ss[["Sum Sq"]]), 1)
-  res_list[[v]] <- setNames(pct, trimws(rownames(ss)))
-}
-
-# Combine into a data frame and format with kable
-res_df <- do.call(rbind, res_list)
-rownames(res_df) <- vars
-
-kable(res_df, col.names = c("Digit", "Person ID", "Session", "Person ID : Session", "Residuals"),
-      caption = "Percentage of Variance Decomposition for Features")
-```
+::: {#tbl-variance_decomposition}
+|     | Digit | Person ID | Session | Person ID : Session | Residuals |
+|:----|------:|----------:|--------:|--------------------:|----------:|
+| h   |   7.6 |      62.9 |     0.1 |                 2.9 |      26.5 |
+| w   |  43.5 |      40.5 |     0.4 |                 6.8 |       8.8 |
+| cx  |  31.6 |      34.4 |     0.6 |                10.3 |      23.1 |
+| cy  |  15.0 |      10.3 |     0.4 |                17.0 |      57.3 |
+Table. Percentage of Variance Decomposition for Features
+:::
 
 To evaluate the stability and discriminative power of spatial feature measurements across handwritten digit samples, a variance decomposition analysis was conducted. The analysis decomposes total variance across four spatial metrics into five distinct components:
 
@@ -165,44 +93,15 @@ Overall, the variance decomposition yields several key insights regarding featur
 
 ### Euclidean Distance Analysis
 
-```{r}
-#| echo: false
-
-
-dist_table <- function(M) {
-  d4  <- meta$session %in% 1:4
-  key <- with(meta[d4, ], paste(person_id, digit, session))
-  Cm  <- rowsum(M[d4, ], key) / 50
-  k   <- do.call(rbind, strsplit(rownames(Cm), " "))
-  info <- data.frame(p = k[,1], d = k[,2], s = k[,3])
-  
-  sapply(0:4, function(dd) {
-    i <- which(info$d == dd)
-    D <- as.matrix(dist(Cm[i, ]))
-    a <- info[i, ]
-    up <- upper.tri(D)
-    sp <- outer(a$p, a$p, "==")
-    ss <- outer(a$s, a$s, "==")
-    c(same_writer_diff_session = mean(D[up & sp & !ss]),
-      diff_writer_same_session = mean(D[up & !sp & ss]),
-      diff_writer_diff_session = mean(D[up & !sp & !ss]))
-  })
-}
-
-dtab <- dist_table(X)
-colnames(dtab) <- paste("Digit", 0:4)
-
-# Calculate ratio and combine with the main distance table
-ratio_row <- dtab["same_writer_diff_session", ] / dtab["diff_writer_diff_session", ]
-combined_matrix <- rbind(round(dtab, 2), ratio = round(ratio_row, 2))
-
-# Rename the final row for clarity
-rownames(combined_matrix)[4] <- "Ratio (Same/Diff Writer)"
-
-# Render using kable
-kable(combined_matrix, 
-      caption = "Euclidean Distances and Ratios Across Digits (0 to 4)")
-```
+::: {#tbl-euclidean_distances}
+|                            | Digit 0 | Digit 1 | Digit 2 | Digit 3 | Digit 4 |
+|:---------------------------|--------:|--------:|--------:|--------:|--------:|
+| `same_writer_diff_session` |    7.06 |    6.48 |    6.58 |    6.65 |    6.35 |
+| `diff_writer_same_session` |    8.78 |    7.85 |    8.09 |    8.17 |    7.98 |
+| `diff_writer_diff_session` |    8.79 |    7.85 |    8.10 |    8.18 |    7.98 |
+| Ratio (Same/Diff Writer)   |    0.80 |    0.83 |    0.81 |    0.81 |    0.80 |
+Table. Euclidean Distances and Ratios Across Digits (0 to 4)
+:::
 
 Because distances are measured in pixel units, relative comparisons across conditions are more informative than absolute values (see Table 2). Across all digits (0 to 4), the mean Euclidean distance for the same writer across different sessions ($6.35$–$7.06$ pixels) is consistently smaller than between different writers ($7.85$–$8.79$ pixels), establishing the core signal required for writer identification.
 
@@ -224,7 +123,7 @@ people_examples <- data$metadata %>%
   ungroup()
 ```
 
-```{r}
+```{r fig-digit-0, fig.cap= "People writing the digit 0"}
 #| echo: false
 par(
   mfrow = c(4, 5),
@@ -263,7 +162,7 @@ people_examples_1 <- data$metadata %>%
   ungroup()
 ```
 
-```{r}
+```{r fig-digit-1, fig.cap= "People writing the digit 1"}
 #| echo: false
 par(
   mfrow = c(4, 5),
@@ -291,7 +190,7 @@ In the image above we can see the that there are clear stylistic differences in 
 
 Next we will explore is if there is variation within a persons handwriting. To do this we will randomly select 3 people and we will compare their handwriting across the five different sessions. This particular section is important because later we will build a Siamese network that will compare whether two images were written by the same person or not. A preliminary analysis will visually help us determine if there are similarities within a persons handwriting.
 
-```{r}
+```{r fig-variation-0, fig.cap= "Variation between person 1, 8 and 18 for the digit 0"}
 #| label: Digits in each session
 #| echo: false
 d <- 0
@@ -328,7 +227,7 @@ Finally, we will assess the within person variation of the different digits. The
 
 For this section we will use the same three people from the previous section. We will keep the session constant and we will assess them on session one.
 
-```{r}
+```{r fig-all_digits, fig.cap= "Variation for person 1, 9, 18 across all the digits"}
 #| echo: false
 s <- 1
 selected_persons <- c(1, 9, 18)
@@ -367,8 +266,6 @@ Another potential issue with the data is the rigid structure and balance of the 
 
 These problems have the potential to cause over fitting in the models. The way the data is structured has the potential to over inflate the accuracy during training and validation. Since the images are low resolution, the models can easily over fit to pixel-level noise or minor rendering artifacts introduced by the simulation engine, treating random pixel patterns as meaningful writer features rather than focusing on the actual stroke dynamic and shapes.
 
-\newpage
-
 # Methods and Results
 
 All analyses were conducted in R (R Core Team, 2026), and used the following packages:
@@ -378,6 +275,10 @@ All analyses were conducted in R (R Core Team, 2026), and used the following pac
 -   imager (Barthelme, 2025) for image processing and manipulation\
 -   pROC (Xavier et al., 2011) for calculation of the area under the curve\
 -   reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
+
+
+\newpage
+
 
 ## Convolutional Neural Network
 
@@ -615,7 +516,7 @@ The optimal distance threshold was found to be 0.247, meaning that 2 images with
 
 ::: {#tbl-results-session}
 | session_type      |    n | accuracy | sensitivity | specificity | balanced_accuracy |
-|:------------------|-----:|---------:|------------:|------------:|------------------:|
+|:-----------|-----------:|-----------:|-----------:|-----------:|-----------:|
 | Same session      | 2000 |    0.947 |       0.899 |       0.995 |             0.947 |
 | Different session | 2000 |    0.554 |       0.112 |       0.997 |             0.554 |
 
@@ -717,4 +618,4 @@ The higher training loss visible in @fig-siamese-1-layer-epochs may partly be ex
 
 -   Kalinowski T, Ushey K, Allaire J, Tang Y (2026). *reticulate: Interface to 'Python'*. doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.
 
--   OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026).
+-   OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026). ::::::::: :::::::::: :::::::::::
