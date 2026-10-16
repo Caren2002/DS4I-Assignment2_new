@@ -547,7 +547,6 @@ Person 18's handwriting samples exhibit strong slanted characteristics and angul
 
 Visual analysis indicates noticeable variations in handwriting across different individuals. Even when writing the same digit, writers demonstrate distinct differences in shape, scale, stroke direction, and style. However, individual handwriting also displays consistent stylistic patterns; as shown in the previous section, a single writer often applies similar structural and graphical characteristics across different digits.
 
-
 ```{r}
 # Scale pixel values from [0, 255] to [0, 1]
 images <- data$images / 255
@@ -576,13 +575,9 @@ length(test_ids)
 
 ```
 
-
-
 # CNN
 
-
 # Siamese neural network
-
 
 ```{r}
 
@@ -683,8 +678,6 @@ all(data$metadata$digit[valid_pairs[, 1]] ==
 
 ```
 
-
-
 ```{r}
 
 #loss function (y = 1 means same writer) 
@@ -703,7 +696,6 @@ balanced_accuracy_at <- function(cut) {
 }
 
 ```
-
 
 ```{r}
 build_siamese <- function(train, valid,
@@ -873,7 +865,6 @@ build_siamese <- function(train, valid,
 ######--------------------------------------------------------------------------
 ```
 
-
 ```{r}
 
 
@@ -941,7 +932,6 @@ layer_results
 
 # Two hidden layers much better. Tune other parameters based on 2 hidden layers
 ```
-
 
 ```{r}
 
@@ -1053,7 +1043,6 @@ act_func2 <- grid_act_funcs$act_func2[best_ind]
 
 ```
 
-
 ```{r siamese-filter-tune}
 
 
@@ -1108,7 +1097,6 @@ for (i in seq_len(nrow(grid_filter))) {
 grid_filter_results
 
 ```
-
 
 ```{r}
 
@@ -1186,7 +1174,6 @@ kernel_size <- grid_filter_results$kernel_size[best_ind]
 # conservative combination: 32 filters of size 5x5
 ```
 
-
 ```{r, eval=FALSE}
 
 grid_nu_lr_dr <- expand.grid(
@@ -1223,7 +1210,6 @@ grid_results_nu_lr_dr
 
 ```
 
-
 ```{r}
 
 # Fit final model --------------------------------------------------------------
@@ -1233,7 +1219,6 @@ grid_results_nu_lr_dr
 final_siamese <- build_siamese(train = train, valid = valid, n_filters = n_filters, kernel_size = kernel_size, act_func1 = act_func1, act_func2 = act_func2, n_epochs = 6)
 
 ```
-
 
 ```{r}
 
@@ -1346,7 +1331,6 @@ table(test_pair_type, session[test_pairs[,1]] == session[test_pairs[,2]])
 ######--------------------------------------------------------------------------
 ```
 
-
 ```{r}
 
 
@@ -1355,7 +1339,6 @@ test_distance <- as.numeric(predict(final_siamese$siamese_model,list(test$left,t
 
 
 ```
-
 
 ```{r}
 true_same <- as.logical(test$y[, 1])
@@ -1471,7 +1454,6 @@ writer_results <- do.call(rbind, writer_results)
 writer_results
 ```
 
-
 ```{r}
 
 
@@ -1487,7 +1469,6 @@ plot(roc_object, main = "Siamese Network ROC Curve")
 
 
 ```
-
 
 ```{r}
 # ------------------------------------------------------------
@@ -1623,4 +1604,3 @@ for (j in seq_len(nrow(examples))) {
 }
 
 ```
-
