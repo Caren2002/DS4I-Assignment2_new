@@ -277,7 +277,10 @@ All analyses were conducted in R (R Core Team, 2026), and used the following pac
 - tidyverse (Wickham et al., 2019) for convenient data manipulation\
 - imager (Barthelme, 2025) for image processing and manipulation\
 - pROC (Xavier et al., 2011) for calculation of the area under the curve\
-- reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
+- reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend 
+
+Seeds were set throughout the analyses to ensure reproducibility of results. 
+
 
 \newpage
 
