@@ -975,32 +975,46 @@ grid_filter <- expand.grid(
   stringsAsFactors = FALSE
 )
 
-
 # Store results
 grid_filter_results <- grid_filter
 grid_filter_results$balanced_accuracy <- NA_real_
 grid_filter_results$val_loss <- NA_real_
 
-# Loop through each row of the grid
+# Run each combination 3 times
+seeds <- c(8, 10, 27)
+
 for (i in seq_len(nrow(grid_filter))) {
-  cat('-------------Model', i, 'of', nrow(grid_filter),'-------------\n')
+  cat('=================== Model', i, 'of', nrow(grid_filter), ' ===================\n')
   
-  result <- build_siamese(
-    train = train,
-    valid = valid,
-    act_func1 = act_func1,
-    act_func2 = act_func2,
-    n_filters = grid_filter$n_filters[i],
-    kernel_size = grid_filter$kernel_size[i],
-    double_layer = TRUE
-  )
+  # Store metrics for the 3 repetitions
+  ba_reps <- numeric(length(seeds))
+  loss_reps <- numeric(length(seeds))
   
-  # Store validation balanced accuracy
-  grid_filter_results$balanced_accuracy[i] <- result$validation_result$balanced_accuracy
-  grid_filter_results$val_loss[i] <- tail(result$history$metrics$val_loss, 1)
+  for (j in seq_along(seeds)) {
+    cat('---------- Repetition', j, 'of', length(seeds),
+        '(seed =', seeds[j], ') ----------\n')
+    
+    result <- build_siamese(
+      train = train,
+      valid = valid,
+      act_func1 = act_func1,
+      act_func2 = act_func2,
+      n_filters = grid_filter$n_filters[i],
+      kernel_size = grid_filter$kernel_size[i],
+      double_layer = TRUE,
+      seed = seeds[j]
+    )
+    
+    ba_reps[j] <- result$validation_result$balanced_accuracy
+    loss_reps[j] <- tail(result$history$metrics$val_loss, 1)
+  }
+  
+  # Average metrics across the 3 repetitions
+  grid_filter_results$balanced_accuracy[i] <- mean(ba_reps)
+  grid_filter_results$val_loss[i] <- mean(loss_reps)
 }
 
-# View results
+# View results (same structure as before)
 grid_filter_results
 
 ```
