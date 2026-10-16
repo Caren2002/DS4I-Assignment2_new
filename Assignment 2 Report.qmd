@@ -56,6 +56,7 @@ display_image <- function(img, title = "") {
 | Image Resolution (Height x Width) | 28 pixels x 28 pixels |
 | Color Channels | 28 Channel(s) |
 | Class Distribution (Digits 0 to 4) | Balanced (5000, 5000, 5000, 5000, 5000 samples each) |
+
 Table. Summary of Dataset Metadata and Image Dimensions
 :::
 
@@ -70,24 +71,25 @@ The metadata identify the writer (`person_id`), the digit class (`digit`), and t
 | w   |  43.5 |      40.5 |     0.4 |                 6.8 |       8.8 |
 | cx  |  31.6 |      34.4 |     0.6 |                10.3 |      23.1 |
 | cy  |  15.0 |      10.3 |     0.4 |                17.0 |      57.3 |
+
 Table. Percentage of Variance Decomposition for Features
 :::
 
 To evaluate the stability and discriminative power of spatial feature measurements across handwritten digit samples, a variance decomposition analysis was conducted. The analysis decomposes total variance across four spatial metrics into five distinct components:
 
--   **Feature Metrics:** Digit height ($h$), digit width ($w$), horizontal center of mass ($cx$), and vertical center of mass ($cy$).
+- **Feature Metrics:** Digit height ($h$), digit width ($w$), horizontal center of mass ($cx$), and vertical center of mass ($cy$).
 
--   **Variance Components:** Digit identity (**Digit**), writer identity (**Person ID**), baseline session main effect (**Session**), writer-by-session interaction (**Person ID : Session**), and random residual variation across replicates (**Residuals**).
+- **Variance Components:** Digit identity (**Digit**), writer identity (**Person ID**), baseline session main effect (**Session**), writer-by-session interaction (**Person ID : Session**), and random residual variation across replicates (**Residuals**).
 
 #### Feature Interpretation
 
--   **Digit Height (**$h$): Writer identity (**Person ID**) accounts for the dominant share of variance at **62.9%**, whereas the interaction effect (**Person ID : Session**) accounts for only **2.9%**. This demonstrates that character height serves as a highly stable, writer-specific trait that remains robust across distinct recording sessions.
+- **Digit Height (**$h$): Writer identity (**Person ID**) accounts for the dominant share of variance at **62.9%**, whereas the interaction effect (**Person ID : Session**) accounts for only **2.9%**. This demonstrates that character height serves as a highly stable, writer-specific trait that remains robust across distinct recording sessions.
 
--   **Digit Width (**$w$): Total variance is primarily partitioned between digit identity (**43.5%**) and writer identity (**40.5%**). Naturally, character width varies intrinsically across different digits (e.g., a digit '1' versus a digit '0'); nevertheless, substantial inter-writer variance persists with minimal session-induced fluctuation (**6.8%**).
+- **Digit Width (**$w$): Total variance is primarily partitioned between digit identity (**43.5%**) and writer identity (**40.5%**). Naturally, character width varies intrinsically across different digits (e.g., a digit '1' versus a digit '0'); nevertheless, substantial inter-writer variance persists with minimal session-induced fluctuation (**6.8%**).
 
--   **Horizontal Position (**$cx$): Influenced moderately by both digit identity (**31.6%**) and writer identity (**34.4%**). Individual writers maintain consistent horizontal placement habits, though a moderate writer-by-session interaction (**10.3%**) indicates minor positional shifts across recording instances.
+- **Horizontal Position (**$cx$): Influenced moderately by both digit identity (**31.6%**) and writer identity (**34.4%**). Individual writers maintain consistent horizontal placement habits, though a moderate writer-by-session interaction (**10.3%**) indicates minor positional shifts across recording instances.
 
--   **Vertical Position (**$cy$): Exhibits poor stability for writer discrimination. Main writer variance accounts for only **10.3%**, whereas writer-by-session interaction (**17.0%**) and residual noise (**57.3%**) dominate total variance. Consequently, vertical alignment varies substantially between sessions and individual stroke replicates, making it an unreliable feature for writer identification.
+- **Vertical Position (**$cy$): Exhibits poor stability for writer discrimination. Main writer variance accounts for only **10.3%**, whereas writer-by-session interaction (**17.0%**) and residual noise (**57.3%**) dominate total variance. Consequently, vertical alignment varies substantially between sessions and individual stroke replicates, making it an unreliable feature for writer identification.
 
 Overall, the variance decomposition yields several key insights regarding feature stability and writer discriminability. Main session effects contribute less than 1% across all spatial metrics (0.1%–0.6%), indicating that no single recording session exhibits global systematic bias or baseline shift, which supports the assumption that sessions represent comparable sampling conditions. Furthermore, inter-individual variance (**Person ID**) constitutes a major proportion of total variation for height, width, and horizontal positioning, confirming that individual writers possess measurable, repeatable handwriting characteristics that generalize across distinct sessions. Finally, handwriting variations between sessions manifest primarily as spatial positional shifts ($cx, cy$) rather than structural or dimensional resizing ($h, w$).
 
@@ -100,6 +102,7 @@ Overall, the variance decomposition yields several key insights regarding featur
 | `diff_writer_same_session` |    8.78 |    7.85 |    8.09 |    8.17 |    7.98 |
 | `diff_writer_diff_session` |    8.79 |    7.85 |    8.10 |    8.18 |    7.98 |
 | Ratio (Same/Diff Writer)   |    0.80 |    0.83 |    0.81 |    0.81 |    0.80 |
+
 Table. Euclidean Distances and Ratios Across Digits (0 to 4)
 :::
 
@@ -270,15 +273,13 @@ These problems have the potential to cause over fitting in the models. The way t
 
 All analyses were conducted in R (R Core Team, 2026), and used the following packages:
 
--   keras3 (Kalinowski et al., 2026) for neural network model building and training\
--   tidyverse (Wickham et al., 2019) for convenient data manipulation\
--   imager (Barthelme, 2025) for image processing and manipulation\
--   pROC (Xavier et al., 2011) for calculation of the area under the curve\
--   reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
-
+- keras3 (Kalinowski et al., 2026) for neural network model building and training\
+- tidyverse (Wickham et al., 2019) for convenient data manipulation\
+- imager (Barthelme, 2025) for image processing and manipulation\
+- pROC (Xavier et al., 2011) for calculation of the area under the curve\
+- reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
 
 \newpage
-
 
 ## Convolutional Neural Network
 
@@ -386,21 +387,21 @@ These results agree with the exploratory analysis. Writers differ in measurable 
 
 A siamese neural network was implemented, with the aim of predicting if 2 images were written by the same person. The data set was initially split into its training (sessions 1 to 3), validation (session 4) and test (session 5) subsets. Within the training subset and validation subset, images were arranged into pairs. Each image could be part of more than 1 pair. Pairs had a 50% chance of both images having the same writer. To remove unnecessary complexity, all pairs were ensured to have 2 images portraying the same digit.
 
-Contrastive loss was implemented, and is calculated as $$L = yD^2 + (1-y)\text{max}(0, m - D)^2,$$ where y = 1 if the images are written by the same writer, D is the euclidean distance between the 2 image embeddings, and m = 1 is the margin. Balanced accuracy is calculated as the average of the true positive rate (sensitivity) and the true negative rate (specificity): $$
-\text{Balanced Accuracy}
+Contrastive loss was implemented, and is calculated as $$L = yD^2 + (1-y)\text{max}(0, m - D)^2,$$ where y = 1 if the images are written by the same writer, D is the euclidean distance between the 2 image embeddings, and m = 1 is the margin. Balanced accuracy is calculated as the average of the true positive rate (sensitivity) and the true negative rate (specificity):
+$$\text{Balanced Accuracy}
 =
-\frac{\text{Sensitivity}+\text{Specificity}}{2}
-$$ where $$
-\text{Sensitivity}
+\frac{\text{Sensitivity}+\text{Specificity}}{2}$$
+where
+$$\text{Sensitivity}
 =
 \frac{\text{True Positives}}
-{\text{True Positives}+\text{False Negatives}}
-$$ and $$
-\text{Specificity}
+{\text{True Positives}+\text{False Negatives}}$$
+and
+$$\text{Specificity}
 =
 \frac{\text{True Negatives}}
-{\text{True Negatives}+\text{False Positives}}.
-$$ The distance threshold was chosen by maximizing balanced accuracy for that individual model. All the calculated distances were candidates for the threshold. Furthermore, hyperparameters were tuned and chosen according to which values and combinations thereof that produced the model with the highest balanced accuracy. For each combination of parameters considered, the model fitting process was repeated 3 times, and the average metrics were reported.
+{\text{True Negatives}+\text{False Positives}}.$$
+The distance threshold was chosen by maximizing balanced accuracy for that individual model. All the calculated distances were candidates for the threshold. Furthermore, hyperparameters were tuned and chosen according to which values and combinations thereof that produced the model with the highest balanced accuracy. For each combination of parameters considered, the model fitting process was repeated 3 times, and the average metrics were reported.
 
 It was found that a model with 2 hidden layers (mean balanced accuracy = 0.966 and mean validation loss = 0.105) performed considerably better than a model with 1 (balanced accuracy = 0.773 and validation loss = 0.214). Thereafter, the activation functions on the hidden layers were optimized. The ReLU and Tanh functions were considered. The 4 different combinations of these functions across the 2 layer network were evaluated. @tbl-act-fn_tune demonstrates that the best performing activation function combination was relu-tanh according to balanced accuracy (0.982). Though this does not correspond with the activation function combination chosen by validation loss (tanh-relu, 0.103), the balanced accuracy metric is prioritized throughout tuning. This is because balanced accuracy provides a direct measure of classification performance by averaging sensitivity and specificity. This ensures that performance on both classes (similar and dissimilar image pairs) is considered equally, regardless of class prevalence. In contrast, validation contrastive loss measures how effectively the network learns the distance relationships between image pairs, but does not directly indicate classification accuracy. Therefore, balanced accuracy was considered a more appropriate criterion for tuning the model.
 
@@ -585,7 +586,7 @@ Lastly, the AUC value was calculated to be 0.963, indicating that there is excel
 
 # Discussion
 
-In the Siamese neural network, the training, validation and test data sets differ in their representation of session variability. The training data contain image pairs from multiple sessions, whereas the validation data are restricted to session 4. The test data include both within-session pairs and cross-session pairs, with cross-session comparisons incorporating images from sessions 1–4 and session 5. Consequently, the validation results may not fully reflect the model's ability to generalize across sessions. This is evident in @tbl-results-session, where balanced accuracy decreases to 0.554 for cross-session pairs, primarily because sensitivity falls to 0.112. This suggests that the model frequently fails to identify pairs from the same writer when their handwriting samples originate from different sessions.  
+In the Siamese neural network, the training, validation and test data sets differ in their representation of session variability. The training data contain image pairs from multiple sessions, whereas the validation data are restricted to session 4. The test data include both within-session pairs and cross-session pairs, with cross-session comparisons incorporating images from sessions 1–4 and session 5. Consequently, the validation results may not fully reflect the model's ability to generalize across sessions. This is evident in @tbl-results-session, where balanced accuracy decreases to 0.554 for cross-session pairs, primarily because sensitivity falls to 0.112. This suggests that the model frequently fails to identify pairs from the same writer when their handwriting samples originate from different sessions.
 
 The tuning models achieved considerably higher performance, particularly in terms of balanced accuracy, than the final model. One possible explanation is that the hyperparameters were tuned sequentially rather than simultaneously, meaning that interactions between hyperparameters may not have been fully captured. Consequently, the combination selected for the final model may not have been optimal, potentially contributing to its lower performance.
 
@@ -595,19 +596,15 @@ With regards to model performance, since the same-writer and different-writer cl
 
 # Appendix
 
-The higher training loss visible in @fig-siamese-1-layer-epochs may partly be explained by regularization. Dropout (0.2) randomly disables units during training, making learning more difficult, whereas dropout is switched off during validation. L2 regularization (nu = 0.001) may also contribute to a higher training loss. However, the more likely possibility is that the validation data may be easier to predict than the training data due to differences in session composition. However, a lower validation loss does not necessarily indicate a problem or data leakage.  
+The higher training loss visible in @fig-siamese-1-layer-epochs may partly be explained by regularization. Dropout (0.2) randomly disables units during training, making learning more difficult, whereas dropout is switched off during validation. L2 regularization (nu = 0.001) may also contribute to a higher training loss. However, the more likely possibility is that the validation data may be easier to predict than the training data due to differences in session composition. However, a lower validation loss does not necessarily indicate a problem or data leakage.
 
+![Contrastive loss as a function of epochs for a one-hidden layer siamese network.](siamese_1_layer_epochs.png){#fig-siamese-1-layer-epochs width="100%"}
 
-![Contrastive loss as a function of epochs for a one-hidden layer siamese network.](siamese_1_layer_epochs.png){#fig-siamese-1-layer-epochs width="100%"}  
+@fig-siamese-error1 shows 2 images with the digit '4' written by writers 13 and 8 respectively. Both were written in session 5. The siamese network calculated a difference of 0.203 between their embeddings. Since this is lower than the distance threshold value (0.247), the images were incorrectly classified as being written by the same person. To the human eye, the 2 digits do look fairly similar.
 
-@fig-siamese-error1 shows 2 images with the digit '4' written by writers 13 and 8 respectively. Both were written in session 5. The siamese network calculated a difference of 0.203 between their embeddings. Since this is lower than the distance threshold value (0.247), the images were incorrectly classified as being written by the same person. To the human eye, the 2 digits do look fairly similar.  
+![Incorrect prediction during a different writer-same session combination.](siamese_error3.png){#fig-siamese-error1 width="80%"}
 
-
-![Incorrect prediction during a different writer-same session combination.](siamese_error3.png){#fig-siamese-error1 width="80%"}  
-
-
-@fig-siamese-error2 depicts images of the digit '3' being written by writer 4 during sessions 5 and 1. The calculated distance between their embeddings was 0.757 which is considerably higher than the distance threshold, leading to the images being incorrectly classified as originating from different writers. Slight differences are visible to the human eye, such as the difference in width between the numbers in the 2 images.  
-
+@fig-siamese-error2 depicts images of the digit '3' being written by writer 4 during sessions 5 and 1. The calculated distance between their embeddings was 0.757 which is considerably higher than the distance threshold, leading to the images being incorrectly classified as originating from different writers. Slight differences are visible to the human eye, such as the difference in width between the numbers in the 2 images.
 
 ![Incorrect prediction during a same writer-different session combination](siamese_error8.png){#fig-siamese-error2 width="80%"}
 
@@ -615,16 +612,16 @@ The higher training loss visible in @fig-siamese-1-layer-epochs may partly be ex
 
 # References
 
--   R Core Team (2026). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing, Vienna, Austria. doi:10.32614/R.manuals <https://doi.org/10.32614/R.manuals>. <https://www.R-project.org/>.
+- R Core Team (2026). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing, Vienna, Austria. doi:10.32614/R.manuals <https://doi.org/10.32614/R.manuals>. <https://www.R-project.org/>.
 
--   Kalinowski T, Allaire J, Chollet F (2026). *keras3: R Interface to 'Keras'*. doi:10.32614/CRAN.package.keras3 <https://doi.org/10.32614/CRAN.package.keras3>. R package version 1.5.1, <https://CRAN.R-project.org/package=keras3>.
+- Kalinowski T, Allaire J, Chollet F (2026). *keras3: R Interface to 'Keras'*. doi:10.32614/CRAN.package.keras3 <https://doi.org/10.32614/CRAN.package.keras3>. R package version 1.5.1, <https://CRAN.R-project.org/package=keras3>.
 
--   Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to the tidyverse.” *Journal of Open Source Software*, *4*(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>.
+- Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to the tidyverse.” *Journal of Open Source Software*, *4*(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>.
 
--   Barthelme S (2025). *imager: Image Processing Library Based on 'CImg'*. doi:10.32614/CRAN.package.imager <https://doi.org/10.32614/CRAN.package.imager>. R package version 1.0.8, <https://CRAN.R-project.org/package=imager>.
+- Barthelme S (2025). *imager: Image Processing Library Based on 'CImg'*. doi:10.32614/CRAN.package.imager <https://doi.org/10.32614/CRAN.package.imager>. R package version 1.0.8, <https://CRAN.R-project.org/package=imager>.
 
--   Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek, Jean-Charles Sanchez and Markus Müller (2011). pROC: an open-source package for R and S+ to analyze and compare ROC curves. BMC Bioinformatics, 12, p. 77. DOI: 10.1186/1471-2105-12-77 <http://www.biomedcentral.com/1471-2105/12/77/>
+- Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek, Jean-Charles Sanchez and Markus Müller (2011). pROC: an open-source package for R and S+ to analyze and compare ROC curves. BMC Bioinformatics, 12, p. 77. DOI: 10.1186/1471-2105-12-77 <http://www.biomedcentral.com/1471-2105/12/77/>
 
--   Kalinowski T, Ushey K, Allaire J, Tang Y (2026). *reticulate: Interface to 'Python'*. doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.
+- Kalinowski T, Ushey K, Allaire J, Tang Y (2026). *reticulate: Interface to 'Python'*. doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.
 
--   OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026). 
+- OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026).
