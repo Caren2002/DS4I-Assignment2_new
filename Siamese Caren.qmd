@@ -44,6 +44,65 @@ display_image <- function(img, title = "") {
 }
 ```
 
+### Variance decomposition: writer, session or digit?
+
+```{r}
+# Shared objects (also used by the CNN section)
+meta <- data$metadata
+X    <- matrix(data$images, nrow = 25000) / 255      # one row per image (784 pixels)
+
+# Four simple summaries per image: height, width, horizontal and vertical centre of mass
+img  <- data$images[,,,1] / 255
+feat <- t(apply(img, 1, function(m) {
+  on <- m > 0.3
+  r  <- which(rowSums(on) > 0)
+  cc <- which(colSums(on) > 0)
+  c(h = diff(range(r)) + 1, w = diff(range(cc)) + 1,
+    cx = sum(m * col(m)) / sum(m), cy = sum(m * row(m)) / sum(m))
+}))
+
+feat_df <- data.frame(meta, feat)
+feat_df[c("person_id", "session", "digit")] <-
+  lapply(feat_df[c("person_id", "session", "digit")], factor)
+
+# Percentage of each measurement's variance explained by each source
+for (v in c("h", "w", "cx", "cy")) {
+  ss <- summary(aov(reformulate("digit + person_id + session + person_id:session", v),
+                    data = feat_df))[[1]]
+  cat("\n", v, "\n")
+  print(round(100 * ss[["Sum Sq"]] / sum(ss[["Sum Sq"]]), 1) |>
+          setNames(trimws(rownames(ss))))
+}
+```
+
+### Distances between a writer's sessions and between writers
+
+```{r}
+dist_table <- function(M) {
+  d4  <- meta$session %in% 1:4
+  key <- with(meta[d4, ], paste(person_id, digit, session))
+  Cm  <- rowsum(M[d4, ], key) / 50          # average image of each writer x digit x session cell
+  k   <- do.call(rbind, strsplit(rownames(Cm), " "))
+  info <- data.frame(p = k[,1], d = k[,2], s = k[,3])
+  sapply(0:4, function(dd) {
+    i <- which(info$d == dd)                # one digit at a time: 20 writers x 4 sessions = 80 cells
+    D <- as.matrix(dist(Cm[i, ]))           # distance between every pair of cells
+    a <- info[i, ]
+    up <- upper.tri(D)                      # count each pair once
+    sp <- outer(a$p, a$p, "==")             # TRUE if the pair has the same writer
+    ss <- outer(a$s, a$s, "==")             # TRUE if the pair has the same session
+    c(same_writer_diff_session = mean(D[up & sp & !ss]),
+      diff_writer_same_session = mean(D[up & !sp & ss]),
+      diff_writer_diff_session = mean(D[up & !sp & !ss]))
+  })
+}
+dtab <- dist_table(X)
+colnames(dtab) <- paste("digit", 0:4)
+round(dtab, 2)
+round(dtab["same_writer_diff_session", ] / dtab["diff_writer_diff_session", ], 2)
+```
+
+### Dataset and Metadata Overview
 ## Data set and Metadata Overview
 
 ```{r}
@@ -359,6 +418,47 @@ par(mfrow = c(1, 1))
 
 Across all digits, a visual evaluation reveals distinctive structural and geometric features that define each individual's overall writing style. Person 1 produces centered digits occupying consistent relative proportions, where digits 1, 2, and 3 share a similar curved, arch-like top loop, and digits 1 and 2 feature flat horizontal base strokes. Similarly, Person 9 exhibits overlapping structural traits across digits, including a smoothly curved top arch across digits 1, 2, and 3, flat horizontal base strokes on digits 1 and 2, and enclosed loop structures within digits 0 and 4. In contrast, Person 18 displays strong slanted and angular characteristics, with digits 1 through 4 featuring pronounced rightward slants and sharp, linear strokes rather than smooth curves, alongside flat horizontal baselines (digits 1 and 2) and sharp horizontal cross-strokes across digits 1, 2, and 4.
 
+Visual analysis indicates noticeable variations in handwriting across different individuals. Even when writing the same digit, writers demonstrate distinct differences in shape, scale, stroke direction, and style. However, individual handwriting also displays consistent stylistic patterns; as shown in the previous section, a single writer often applies similar structural and graphical characteristics across different digits.
+
+```{r}
+# Scale pixel values from [0, 255] to [0, 1]
+images <- data$images / 255
+
+# rename for easy references later
+person_id <- data$metadata$person_id
+person_id <- as.factor(person_id)
+digit <- data$metadata$digit
+session <- data$metadata$session
+
+
+
+# sessions 1,2,3 as training data
+train_ids <- which(data$metadata$session %in% c(1, 2, 3))
+
+# Session 4 as validation
+valid_ids <- which(data$metadata$session == 4)
+
+# Session 5 as test
+test_ids <- which(data$metadata$session == 5)
+
+# verify sizes
+length(train_ids)
+length(valid_ids)
+length(test_ids)
+
+```
+
+# CNN
+
+### Switches and settings
+
+```{r}
+# TRUE  = rerun every tuning search (takes hours).
+# FALSE = skip the searches and use the settings they found (runs in minutes).
+run_searches <- FALSE
+
+cnn_seeds <- c(123, 1, 2)    # three random seeds for every tuning comparison
+tol_ce    <- 0.30            # cross-entropy tolerance used to choose between candidates
 ## Data Limitations and Potential Problems
 
 There some limitations with the data and this may cause potential problems when we are building our prediction models. Firstly, the data we are using is simulated and images do not contain real handwriting, the data lacks the organic irregularities, noise complexities, and unpredictable strokes found in real world handwriting. Secondly, the data set is constrained to five digits. It does not cover the full range of numeric digits or alphabet characters which limits how well the findings generalize to full handwriting recognition tasks.
@@ -367,8 +467,408 @@ Another potential issue with the data is the rigid structure and balance of the 
 
 These problems have the potential to cause over fitting in the models. The way the data is structured has the potential to over inflate the accuracy during training and validation. Since the images are low resolution, the models can easily over fit to pixel-level noise or minor rendering artifacts introduced by the simulation engine, treating random pixel patterns as meaningful writer features rather than focusing on the actual stroke dynamic and shapes. \# CNN
 
+# Settings found by the searches below (used when run_searches is FALSE)
+best1    <- data.frame(act = "tanh", lr = 0.0001, drop = 0.7)     # Stage 1 winner
+best2    <- data.frame(filters = 16, kernel = 3, pool = 2)        # Stage 2 winner
+n_epochs <- 10                                                    # epochs chosen from validation curves
+nu_reg   <- 0.1                                                   # L2 penalty chosen in section "L2 penalty"
+
+if (!exists("meta")) meta <- data$metadata
+if (!exists("X"))    X    <- matrix(data$images, nrow = 25000) / 255
+```
+
+### Split by session
+
+```{r}
+tr <- meta$session %in% 1:3      # training: sessions 1-3
+va <- meta$session == 4          # validation: session 4
+te <- meta$session == 5          # test: session 5
+
+x_train <- data$images[tr,,,,drop = FALSE] / 255
+x_val   <- data$images[va,,,,drop = FALSE] / 255
+x_test  <- data$images[te,,,,drop = FALSE] / 255
+
+person_f <- factor(meta$person_id)
+y_all    <- as.integer(person_f) - 1          # 0..19 (to_categorical needs zero-based labels)
+n_people <- nlevels(person_f)
+
+y_train <- to_categorical(y_all[tr], n_people)
+y_val   <- to_categorical(y_all[va], n_people)
+y_test  <- to_categorical(y_all[te], n_people)
+y_val_idx <- y_all[va]
+
+dim(x_train); dim(x_val); dim(x_test)
+stopifnot(all(table(meta$person_id[tr]) == 750),
+          all(table(meta$person_id[va]) == 250),
+          all(table(meta$person_id[te]) == 250))
+```
+
+### Baselines
+
+```{r}
+# Baseline 1: nearest centroid, using each writer's average image for the same digit
+centroid_acc <- function(train_idx, val_idx) {
+  pred <- integer(sum(val_idx))
+  Xv <- X[val_idx, ]
+  dv <- meta$digit[val_idx]
+  for (d in 0:4) {
+    it <- train_idx & meta$digit == d
+    Cd <- rowsum(X[it, ], meta$person_id[it]) / (sum(it) / n_people)   # mean image per writer
+    iv <- which(dv == d)
+    d2 <- outer(rowSums(Xv[iv, ]^2), rep(1, nrow(Cd))) - 2 * Xv[iv, ] %*% t(Cd) +
+          outer(rep(1, length(iv)), rowSums(Cd^2))      # squared distance to each template
+    pred[iv] <- as.integer(rownames(Cd))[max.col(-d2)]  # closest template = predicted writer
+  }
+  mean(pred == meta$person_id[val_idx])
+}
+centroid_acc(tr, va)
+
+# Baseline 2: linear softmax on raw pixels (no hidden layer)
+set_random_seed(123)
+lin <- keras_model_sequential(input_shape = c(28, 28, 1)) %>%
+  layer_flatten() %>%
+  layer_dense(n_people, activation = "softmax")
+lin %>% compile(loss = "categorical_crossentropy",
+                optimizer = optimizer_adam(learning_rate = 0.0001),
+                metrics = "accuracy")
+h_lin <- lin %>% fit(x_train, y_train, epochs = 20, batch_size = 64,
+                     validation_data = list(x_val, y_val), verbose = 0)
+c(val_acc = tail(h_lin$metrics$val_accuracy, 1),
+  val_ce  = tail(h_lin$metrics$val_loss, 1))       # no penalty, so val_loss is the cross-entropy
+```
+
+### Model definition and default CNN
+
+```{r}
+compile_model <- function(model, lr) {
+  model %>% compile(loss = "categorical_crossentropy",
+                    optimizer = optimizer_adam(learning_rate = lr),
+                    metrics = "accuracy")
+  model
+}
+
+# Two conv layers, max pooling, flatten, softmax output.
+# nu is the L2 weight penalty (nu = 0 means none). Defaults = the lecture CNN.
+build_cnn <- function(nu = 0, act = "relu", drop = 0.2, lr = 0.01,
+                      filters = 16, kernel = 3, pool = 2) {
+  input <- layer_input(shape = c(28, 28, 1))
+  output <- input %>%
+    layer_conv_2d(filters = filters, kernel_size = c(kernel, kernel),
+                  kernel_regularizer = regularizer_l2(nu)) %>%
+    layer_activation(act) %>%
+    layer_dropout(rate = drop) %>%
+    layer_conv_2d(filters = filters, kernel_size = c(kernel, kernel), activation = act,
+                  kernel_regularizer = regularizer_l2(nu)) %>%
+    layer_max_pooling_2d(pool_size = c(pool, pool)) %>%
+    layer_flatten() %>%
+    layer_dense(units = n_people, activation = "softmax",
+                kernel_regularizer = regularizer_l2(nu))
+  compile_model(keras_model(input, output), lr = lr)
+}
+
+set_random_seed(123)
+cnn_base <- build_cnn(nu = 0)       # default CNN: relu, dropout 0.2, lr 0.01, 16 filters, 3x3, pool 2x2
+summary(cnn_base)
+```
+
+### Stage 1: activation, learning rate and dropout (72 combinations x 3 seeds)
+
+```{r}
+#| eval: !expr run_searches
+grid <- expand.grid(act  = c("tanh", "relu"),
+                    lr   = c(0.003, 0.001, 0.0003, 0.0001, 0.00003, 0.00001),
+                    drop = c(0.1, 0.2, 0.3, 0.5, 0.6, 0.7),
+                    stringsAsFactors = FALSE)
+
+run_one <- function(act, lr, drop, seed) {
+  set_random_seed(seed)
+  m <- build_cnn(nu = 0, act = act, lr = lr, drop = drop)
+  h <- m %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+                 validation_data = list(x_val, y_val), verbose = 0)
+  p <- pmax(predict(m, x_val, verbose = 0), 1e-12)
+  c(train_acc = tail(h$metrics$accuracy, 1),
+    val_acc   = tail(h$metrics$val_accuracy, 1),
+    val_ce    = -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)])))   # cross-entropy without a penalty
+}
+
+grid_res <- do.call(rbind, lapply(seq_len(nrow(grid)), function(g) {
+  cat("stage 1: fit", g, "of", nrow(grid), "\n")
+  r <- sapply(cnn_seeds, function(s) run_one(grid$act[g], grid$lr[g], grid$drop[g], s))
+  data.frame(grid[g, ],
+             train_acc = mean(r["train_acc", ]),
+             val_acc   = mean(r["val_acc", ]),
+             acc_sd    = sd(r["val_acc", ]),
+             val_ce    = mean(r["val_ce", ]),
+             ce_sd     = sd(r["val_ce", ]))
+}))
+
+# Drop collapsed runs (accuracy near chance), then rank on accuracy and cross-entropy (equal-weight rank sum)
+ok1    <- subset(grid_res, val_acc > 0.10)
+r1     <- rank(-ok1$val_acc) + rank(ok1$val_ce)
+ranked <- ok1[order(r1, ok1$val_ce), ]
+best1  <- ranked[1, ]
+stopifnot(is.numeric(best1$lr))
+
+top10 <- ranked[1:10, ]
+top10$lr <- format(top10$lr, scientific = FALSE)
+top10[sapply(top10, is.numeric)] <- round(top10[sapply(top10, is.numeric)], 3)
+top10
+best1[, c("act", "lr", "drop", "val_acc", "val_ce")]
+```
+
+### Stage 2: filters, kernel size and pool size (12 combinations x 3 seeds)
+
+```{r}
+#| eval: !expr run_searches
+arch_grid <- expand.grid(filters = c(8, 16, 32),
+                         kernel  = c(3, 5),
+                         pool    = c(2, 3))
+
+run_arch <- function(filters, kernel, pool, seed) {
+  set_random_seed(seed)
+  m <- build_cnn(nu = 0, act = best1$act, lr = best1$lr, drop = best1$drop,
+                 filters = filters, kernel = kernel, pool = pool)
+  h <- m %>% fit(x_train, y_train, epochs = 10, batch_size = 64,
+                 validation_data = list(x_val, y_val), verbose = 0)
+  p <- pmax(predict(m, x_val, verbose = 0), 1e-12)
+  c(train_acc = tail(h$metrics$accuracy, 1),
+    val_acc   = tail(h$metrics$val_accuracy, 1),
+    val_ce    = -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)])))
+}
+
+arch_res <- do.call(rbind, lapply(seq_len(nrow(arch_grid)), function(g) {
+  cat("stage 2: fit", g, "of", nrow(arch_grid), "\n")
+  r <- sapply(cnn_seeds, function(s)
+    run_arch(arch_grid$filters[g], arch_grid$kernel[g], arch_grid$pool[g], s))
+  data.frame(arch_grid[g, ],
+             train_acc = mean(r["train_acc", ]),
+             val_acc   = mean(r["val_acc", ]),
+             acc_sd    = sd(r["val_acc", ]),
+             val_ce    = mean(r["val_ce", ]),
+             ce_sd     = sd(r["val_ce", ]))
+}))
+
+# Candidates within the cross-entropy tolerance; choose the highest accuracy among them
+ok2   <- subset(arch_res, val_acc > 0.10)
+near2 <- subset(ok2, val_ce <= min(ok2$val_ce) * (1 + tol_ce))
+near2 <- near2[order(-near2$val_acc, near2$val_ce), ]
+
+show2 <- near2
+show2[sapply(show2, is.numeric)] <- round(show2[sapply(show2, is.numeric)], 3)
+show2                                       # all candidates inside the tolerance
+best2 <- near2[1, ]
+best2
+```
+
+### Number of epochs for the chosen model
+
+```{r}
+#| eval: !expr run_searches
+n_ep <- 60                                  # train for 60 epochs, one at a time, with no penalty
+
+curves <- lapply(cnn_seeds, function(s) {
+  set_random_seed(s)
+  m <- build_cnn(nu = 0, act = best1$act, lr = best1$lr, drop = best1$drop,
+                 filters = best2$filters, kernel = best2$kernel, pool = best2$pool)
+  out <- matrix(NA, n_ep, 3,
+                dimnames = list(NULL, c("train_acc", "val_acc", "val_ce")))
+  for (e in 1:n_ep) {
+    h <- m %>% fit(x_train, y_train, epochs = 1, batch_size = 64, verbose = 0)
+    p <- pmax(predict(m, x_val, verbose = 0), 1e-12)
+    out[e, ] <- c(h$metrics$accuracy,
+                  mean(max.col(p) - 1 == y_val_idx),
+                  -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)])))
+  }
+  out
+})
+avg <- Reduce(`+`, curves) / length(curves)
+
+# Among epochs whose cross-entropy is within the tolerance of the minimum, take the highest accuracy
+e_ce     <- which.min(avg[, "val_ce"])
+ok_ep    <- which(avg[, "val_ce"] <= avg[e_ce, "val_ce"] * (1 + tol_ce))
+n_epochs <- ok_ep[which.max(avg[ok_ep, "val_acc"])]
+
+par(mfrow = c(1, 2))
+matplot(avg[, c("train_acc", "val_acc")], type = "l", lty = 1, lwd = 2,
+        xlab = "epoch", ylab = "accuracy")
+legend("bottomright", c("train", "val"), col = 1:2, lty = 1)
+abline(v = n_epochs, lty = 2)
+plot(avg[, "val_ce"], type = "l", lwd = 2, xlab = "epoch", ylab = "validation cross-entropy")
+abline(v = c(e_ce, n_epochs), lty = 2)
+par(mfrow = c(1, 1))
+
+c(min_ce_epoch = e_ce, chosen_epochs = n_epochs)
+```
+
+### L2 penalty (nu)
+
+```{r}
+#| eval: !expr run_searches
+nus <- c(0, 1e-4, 1e-3, 3e-3, 1e-2, 3e-2, 1e-1, 3e-1)
+
+run_nu <- function(nu, seed) {
+  set_random_seed(seed)
+  m <- build_cnn(nu = nu, act = best1$act, lr = best1$lr, drop = best1$drop,
+                 filters = best2$filters, kernel = best2$kernel, pool = best2$pool)
+  h <- m %>% fit(x_train, y_train, epochs = n_epochs, batch_size = 64, verbose = 0)
+  p <- pmax(predict(m, x_val, verbose = 0), 1e-12)     # cross-entropy computed without the penalty
+  c(train_acc = tail(h$metrics$accuracy, 1),
+    val_acc   = mean(max.col(p) - 1 == y_val_idx),
+    val_ce    = -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)])))
+}
+
+nu_res <- do.call(rbind, lapply(nus, function(nu) {
+  cat("nu =", nu, "\n")
+  r <- sapply(cnn_seeds, function(s) run_nu(nu, s))
+  data.frame(nu = nu,
+             train_acc = mean(r["train_acc", ]),
+             val_acc   = mean(r["val_acc", ]),
+             acc_sd    = sd(r["val_acc", ]),
+             val_ce    = mean(r["val_ce", ]),
+             ce_sd     = sd(r["val_ce", ]))
+}))
+
+wh <- which.min(nu_res$val_ce)
+nu_final              <- nus[wh]                          # minimum validation cross-entropy
+nu_final_conservative <- nus[min(wh + 1, length(nus))]    # the conservative "next larger nu"
+nu_reg <- nu_final_conservative                           # the value used for the tuned model
+
+if (wh == 1)           message("Minimum at nu = 0: no extra penalty helped.")
+if (wh == length(nus)) message("Minimum at the largest nu: the grid may be too small.")
+
+show_nu <- nu_res
+show_nu[-1] <- round(show_nu[-1], 3)
+show_nu
+c(minimum = nu_final, used = nu_reg)
+
+par(mfrow = c(1, 2))
+plot(nu_res$val_ce, type = "b", pch = 16, xaxt = "n",
+     xlab = "nu", ylab = "validation cross-entropy")
+axis(1, at = seq_along(nus), labels = nus)
+abline(v = which(nus == nu_final), lty = 2)               # dashed: minimum
+abline(v = which(nus == nu_reg), lty = 1)                 # solid: value used
+plot(nu_res$val_acc, type = "b", pch = 16, xaxt = "n",
+     xlab = "nu", ylab = "validation accuracy")
+axis(1, at = seq_along(nus), labels = nus)
+abline(v = which(nus == nu_final), lty = 2)
+abline(v = which(nus == nu_reg), lty = 1)
+par(mfrow = c(1, 1))
+```
+
+### The tuned model and the final models
+
+```{r}
+# Tuned model: act, lr and dropout from Stage 1 (best1); filters, kernel and pool
+# from Stage 2 (best2); nu from the penalty search; epochs from the validation curves.
+set_random_seed(123)
+cnn_base <- build_cnn(nu = 0)                    # default CNN, rebuilt from scratch
+set_random_seed(123)
+cnn_reg <- build_cnn(nu = nu_reg,
+                     act = best1$act, lr = best1$lr, drop = best1$drop,
+                     filters = best2$filters, kernel = best2$kernel, pool = best2$pool)
+
+# The chosen settings in one place
+data.frame(model = c("cnn_base (default)", "cnn_reg (tuned)"),
+           act     = c("relu", best1$act),
+           lr      = c(0.01, best1$lr),
+           dropout = c(0.2, best1$drop),
+           filters = c(16, best2$filters),
+           kernel  = c(3, best2$kernel),
+           pool    = c(2, best2$pool),
+           nu      = c(0, nu_reg),
+           epochs  = c(n_epochs, n_epochs))
+
+h_base <- cnn_base %>% fit(x_train, y_train, epochs = n_epochs, batch_size = 64,
+                           validation_data = list(x_val, y_val), verbose = 0)
+h_reg  <- cnn_reg  %>% fit(x_train, y_train, epochs = n_epochs, batch_size = 64,
+                           validation_data = list(x_val, y_val), verbose = 0)
+
+plot(h_base)
+plot(h_reg)          # the loss panel includes the penalty; use the accuracy panel
+
+# Validation cross-entropy without the penalty (Keras's val_loss includes it)
+val_ce_of <- function(model) {
+  p <- pmax(predict(model, x_val, verbose = 0), 1e-12)
+  -mean(log(p[cbind(seq_along(y_val_idx), y_val_idx + 1)]))
+}
+val_tab <- data.frame(
+  model     = c("cnn_base (default)", "cnn_reg (tuned)"),
+  train_acc = c(tail(h_base$metrics$accuracy, 1), tail(h_reg$metrics$accuracy, 1)),
+  val_acc   = c(tail(h_base$metrics$val_accuracy, 1), tail(h_reg$metrics$val_accuracy, 1)),
+  val_ce    = c(val_ce_of(cnn_base), val_ce_of(cnn_reg)))
+val_tab[-1] <- round(val_tab[-1], 3)
+val_tab
+```
+
+### Final evaluation on the test session (session 5)
+
+```{r}
+final    <- cnn_reg                         # fixed before the test session was scored
+y_te_idx <- y_all[te]                       # model labels 0-19
+ids      <- as.integer(levels(person_f))    # person_id for each model label
+true_id  <- meta$person_id[te]
+
+model_acc <- function(model, x, y_idx) {
+  p   <- pmax(predict(model, x, verbose = 0), 1e-12)
+  hat <- max.col(p) - 1
+  list(hat = hat,
+       acc = mean(hat == y_idx),
+       ce  = -mean(log(p[cbind(seq_along(y_idx), y_idx + 1)])))   # no penalty term
+}
+res      <- model_acc(final, x_test, y_te_idx)
+res_base <- model_acc(cnn_base, x_test, y_te_idx)
+
+# all predictions as person_id
+pred_cnn  <- ids[res$hat + 1]
+pred_base <- ids[res_base$hat + 1]
+pred_lin  <- ids[max.col(predict(lin, x_test, verbose = 0))]
+
+# All models were trained on sessions 1-3 and are scored on session 5
+test_tab <- data.frame(
+  model    = c("nearest centroid", "linear softmax", "cnn_base (default)", "cnn_reg (tuned, final)"),
+  test_acc = c(centroid_acc(tr, te), mean(pred_lin == true_id), res_base$acc, res$acc),
+  test_ce  = c(NA, NA, res_base$ce, res$ce))
+test_tab[-1] <- round(test_tab[-1], 3)
+test_tab
+log(n_people)                               # cross-entropy of guessing evenly (about 3.0)
+
+# Accuracy per writer, labelled with person_id (not the 0-19 model labels)
+writer_acc <- function(pred) tapply(pred == true_id, true_id, mean)
+a_cnn  <- writer_acc(pred_cnn)
+a_base <- writer_acc(pred_base)
+a_lin  <- writer_acc(pred_lin)
+round(a_cnn, 2)
+
+# Accuracy per digit
+round(tapply(pred_cnn == true_id, meta$digit[te], mean), 2)
+
+# Interval: resample writers, because images from one writer are not independent
+set.seed(1)
+quantile(replicate(2000, mean(sample(a_cnn, replace = TRUE))), c(0.025, 0.975))
+
+# Paired comparison on the same writers: tuned CNN minus each other model
+paired <- function(a, b) {
+  d <- a - b
+  set.seed(1)
+  c(mean_diff = mean(d),
+    quantile(replicate(2000, mean(sample(d, replace = TRUE))), c(0.025, 0.975)))
+}
+round(rbind(vs_default_cnn = paired(a_cnn, a_base),
+            vs_linear      = paired(a_cnn, a_lin)), 3)
+```
+
+```{r}
+# Confusion matrix of the tuned CNN (levels fixed, so it is always 20 x 20)
+conf <- table(true      = factor(true_id,  levels = ids),
+              predicted = factor(pred_cnn, levels = ids))
+conf
+round(conf / rowSums(conf), 2)               # each row as proportions; the diagonal is each writer's accuracy
+sort(colSums(conf), decreasing = TRUE)[1:5]  # predictions received; a fair share is 250 (5,000 images / 20 writers)
+```
+
 # Siamese neural network
 
+```{r}
 ```{r create-foundational-functions}
 #| echo: false
 
@@ -469,6 +969,7 @@ all(data$metadata$digit[valid_pairs[, 1]] ==
 
 ```
 
+```{r}
 ```{r metric-functions}
 #| message: false
 #| warning: false
@@ -491,6 +992,7 @@ balanced_accuracy_at <- function(cut) {
 
 ```
 
+```{r}
 ```{r siamese-function}
 #| include: false
 build_siamese <- function(train, valid,
@@ -660,6 +1162,7 @@ build_siamese <- function(train, valid,
 ######--------------------------------------------------------------------------
 ```
 
+```{r}
 ```{r n-layer-tuning}
 
 
