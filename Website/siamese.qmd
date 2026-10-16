@@ -4,25 +4,20 @@ subtitle: "Data Science for Industry"
 format: html
 editor: visual
 ---
+
 # Methods
 
 A siamese neural network was implemented, with the aim of predicting if 2 images were written by the same person. The data set was initially split into its training (sessions 1 to 3), validation (session 4) and test (session 5) subsets. Within the training subset and validation subset, images were arranged into pairs. Each image could be part of more than 1 pair. Pairs had a 50% chance of both images having the same writer. To remove unnecessary complexity, all pairs were ensured to have 2 images portraying the same digit.
 
-Contrastive loss was implemented, and is calculated as $$L = yD^2 + (1-y)\text{max}(0, m - D)^2,$$ where y = 1 if the images are written by the same writer, D is the euclidean distance between the 2 image embeddings, and m = 1 is the margin. Balanced accuracy is calculated as the average of the true positive rate (sensitivity) and the true negative rate (specificity):
-$$\text{Balanced Accuracy}
+Contrastive loss was implemented, and is calculated as $$L = yD^2 + (1-y)\text{max}(0, m - D)^2,$$ where y = 1 if the images are written by the same writer, D is the euclidean distance between the 2 image embeddings, and m = 1 is the margin. Balanced accuracy is calculated as the average of the true positive rate (sensitivity) and the true negative rate (specificity): $$\text{Balanced Accuracy}
 =
-\frac{\text{Sensitivity}+\text{Specificity}}{2}$$
-where
-$$\text{Sensitivity}
+\frac{\text{Sensitivity}+\text{Specificity}}{2}$$ where $$\text{Sensitivity}
 =
 \frac{\text{True Positives}}
-{\text{True Positives}+\text{False Negatives}}$$
-and
-$$\text{Specificity}
+{\text{True Positives}+\text{False Negatives}}$$ and $$\text{Specificity}
 =
 \frac{\text{True Negatives}}
-{\text{True Negatives}+\text{False Positives}}.$$
-The distance threshold was chosen by maximizing balanced accuracy for that individual model. All the calculated distances were candidates for the threshold. Furthermore, hyperparameters were tuned and chosen according to which values and combinations thereof that produced the model with the highest balanced accuracy. For each combination of parameters considered, the model fitting process was repeated 3 times, and the average metrics were reported.
+{\text{True Negatives}+\text{False Positives}}.$$ The distance threshold was chosen by maximizing balanced accuracy for that individual model. All the calculated distances were candidates for the threshold. Furthermore, hyperparameters were tuned and chosen according to which values and combinations thereof that produced the model with the highest balanced accuracy. For each combination of parameters considered, the model fitting process was repeated 3 times, and the average metrics were reported.
 
 It was found that a model with 2 hidden layers (mean balanced accuracy = 0.966 and mean validation loss = 0.105) performed considerably better than a model with 1 (balanced accuracy = 0.773 and validation loss = 0.214). Thereafter, the activation functions on the hidden layers were optimized. The ReLU and Tanh functions were considered. The 4 different combinations of these functions across the 2 layer network were evaluated. @tbl-act-fn_tune demonstrates that the best performing activation function combination was relu-tanh according to balanced accuracy (0.982). Though this does not correspond with the activation function combination chosen by validation loss (tanh-relu, 0.103), the balanced accuracy metric is prioritized throughout tuning. This is because balanced accuracy provides a direct measure of classification performance by averaging sensitivity and specificity. This ensures that performance on both classes (similar and dissimilar image pairs) is considered equally, regardless of class prevalence. In contrast, validation contrastive loss measures how effectively the network learns the distance relationships between image pairs, but does not directly indicate classification accuracy. Therefore, balanced accuracy was considered a more appropriate criterion for tuning the model.
 
@@ -208,3 +203,4 @@ Test classification performance per writer
 :::
 
 Lastly, the AUC value was calculated to be 0.963, indicating that there is excellent discrimination between same-writer and different-writer pairs across all possible classification thresholds. However, the balanced accuracy of 0.554 (@tbl-results-session) for different-session pairs indicates poor classification performance at the selected threshold, particularly due to low sensitivity (0.112, @tbl-results-session). Overall, the high AUC alongside weak cross-session classification suggests that the model ranks pairs (by distance) well but struggles to correctly identify same-writer pairs across sessions at the chosen threshold.
+ 
