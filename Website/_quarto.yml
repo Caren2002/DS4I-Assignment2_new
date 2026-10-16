@@ -3,17 +3,19 @@ project:
   type: website
 
 website:
-  title: "Assignment 2 Report"
+  title: "Assignment 2"
   navbar:
-    left:
-      - href: home.qmd
+    right:
+      - href: index.qmd
         text: Home
+      - href: home.qmd
+        text: Introduction
       - href: EDA.qmd
-        text: EDA
+        text: Explanatory Data Analysis
       - href: CNN.qmd
-        text: CNN
+        text: Convolutional Neural Network
       - href: siamese.qmd
-        text: Siamese
+        text: Siamese Network
       - href: Discussion.qmd
         text: Discussion
       - href: Appendix.qmd
@@ -21,6 +23,9 @@ website:
 
 format:
   html:
-    theme: cosmo
+    theme: minty
+    css: styles.css
     toc: true
     number-sections: true
+    smooth-scroll: true
+    anchor-sections: true

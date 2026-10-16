@@ -1,7 +1,14 @@
 ---
 title: "Discussion"
+subtitle: "Data Science for Industry"
 format: html
 editor: visual
 ---
 
 ## Discussion
+
+In the Siamese neural network, the training, validation and test data sets differ in their representation of session variability. The training data contain image pairs from multiple sessions, whereas the validation data are restricted to session 4. The test data include both within-session pairs and cross-session pairs, with cross-session comparisons incorporating images from sessions 1–4 and session 5. Consequently, the validation results may not fully reflect the model's ability to generalize across sessions. This is evident in the [Table of session-specific results](siamese.html#tbl-results-session), where balanced accuracy decreases to 0.554 for cross-session pairs, primarily because sensitivity falls to 0.112. This suggests that the model frequently fails to identify pairs from the same writer when their handwriting samples originate from different sessions.
+
+The tuning models achieved considerably higher performance, particularly in terms of balanced accuracy, than the final model. One possible explanation is that the hyperparameters were tuned sequentially rather than simultaneously, meaning that interactions between hyperparameters may not have been fully captured. Consequently, the combination selected for the final model may not have been optimal, potentially contributing to its lower performance.
+
+With regards to model performance, since the same-writer and different-writer classes are balanced, a balanced accuracy of 0.50 provides a useful baseline for random guessing. The high validation performance indicates that the model can distinguish between the two classes under the validation conditions. However, the lower cross-session performance suggests that the model struggles to identify the same writer when handwriting samples originate from different sessions. Consequently, the validation results may overstate the model's practical reliability across sessions. Furthermore, repeatedly selecting hyperparameters using the same validation set may lead to overly optimistic estimates of validation performance.
