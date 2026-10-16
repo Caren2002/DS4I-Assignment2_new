@@ -574,6 +574,8 @@ Performance varied across writers (@tbl-results-writer). Writer 18 achieved the 
 Table. Test classification performance per writer
 :::
 
+Lastly, the AUC value was calculated to be 0.963, indicating that  there is excellent discrimination between same-writer and different-writer pairs across all possible classification thresholds. However, the balanced accuracy of 0.554 (@tbl-results-session) for different-session pairs indicates poor classification performance at the selected threshold, particularly due to low sensitivity (0.112, @tbl-results-session). Overall, the high AUC alongside weak cross-session classification suggests that the model ranks pairs (by distance) well but struggles to correctly identify same-writer pairs across sessions at the chosen threshold.
+
 ## Discussion
 
 In the Siamese neural network, the training, validation and test data sets differ in their representation of session variability. The training data contain image pairs from multiple sessions, whereas the validation data are restricted to session 4. The test data include both within-session pairs and cross-session pairs, with cross-session comparisons incorporating images from sessions 1–4 and session 5. Consequently, the validation results may not fully reflect the model's ability to generalize across sessions. This is evident in @tbl-results-session, where balanced accuracy decreases to 0.680 for cross-session pairs, primarily because sensitivity falls to 0.373. This suggests that the model frequently fails to identify pairs from the same writer when their handwriting samples originate from different sessions.
