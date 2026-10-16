@@ -503,7 +503,7 @@ par(mfrow = c(1, 1))
 ```
 
 
-Since validation balanced accuracy and error was already quite impressive, tuning of the other parameters (such as learning rate, dropout rate and the regularization parameter) was deemed unnecessary. The above (tuning) models used default values of 0.0001, 0.2 and 0.001 for the learning rate, dropout rate and the regularization parameter respectively. These inputs were retained. Hence, the final model used the above default values, one hidden layer with a relu activation and 16 filters of size 7x7, a tanh on the second hidden layer with 32 filters of size 7x7, and was trained using 6 epochs (the number of epochs decreased from 15 to 6 since values converge earlier on, rendering almost half of the epochs unnecessary).  
+Since validation balanced accuracy and error was already quite impressive, tuning of the other parameters (such as learning rate, dropout rate and the regularization parameter) was deemed unnecessary. The above (tuning) models used default values of 0.0001, 0.2 and 0.001 for the learning rate, dropout rate and the regularization parameter respectively. These inputs were retained. Hence, the final model used the above default values, one hidden layer with a relu activation and 16 filters of size 7x7, a tanh on the second hidden layer with 32 filters of size 7x7, and was trained using 6 epochs. The number of epochs decreased from 15 to 6 since values converge earlier on, rendering almost half of the epochs unnecessary (@fig-siamese-1-layer-epochs, Appendix).  
 
 To extensively evaluate the final model, a comprehensive test set was constructed, consisting of 1,000 image pairs  for each of the following writer–session combinations: same writer–same session, same writer–different sessions, different writers–same session, and different writers–different sessions. Each of the 2 images in a pair contained the same digit, and the 5 digits featured amongst the thousand pairs in each category. Since only session 5 was held out for testing, pairs involving different sessions were constructed using images from sessions 1–4. Although the individual images in these pairs had been encountered during training, the specific combinations of images had not been seen by the model. The test pairs therefore still provided a valid assessment of the model's ability to generalize to unseen pairwise comparisons, particularly its ability to distinguish between similar and dissimilar images under different writer–session conditions. However, this evaluation does not constitute a fully independent assessment of generalization to unseen images, since the images themselves were present in the training data. Consequently, the results should be interpreted as evidence of generalization to unseen image pairs rather than to entirely unseen data.
 
@@ -608,5 +608,8 @@ With regards to model performance, since the same-writer and different-writer cl
 ## Appendix
 
 
-![Example image pair.](siamese_error3.png){#fig-siamese-error1 width=80%}
-![Example image pair.](siamese_error8.png){#fig-siamese-error2 width=80%}
+![Contrastive loss as a function of epochs for a one-hidden layer siamese network.](siamese_1_layer_epochs.png){#fig-siamese-1-layer-epochs width=100%}
+
+
+![Incorrect prediction during a different writer-same session combination.](siamese_error3.png){#fig-siamese-error1 width=80%}
+![Incorrect prediction during a different writer-different session combination](siamese_error8.png){#fig-siamese-error2 width=80%}
