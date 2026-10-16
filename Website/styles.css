@@ -1,0 +1,139 @@
+
+/* ===== Overall page design ===== */
+:root {
+  --sage: #dce9df;
+  --forest: #285943;
+  --eucalyptus: #a7c4ad;
+  --cream: #f6f7f0;
+  --ink: #26352d;
+  --minty-primary: #78C2AD;      /* Header / Accent green */
+  --minty-forest: #234E3E;       /* Deep heading green */
+  --minty-light: #EBF6F3;        /* Soft mint tint for banner background */
+  --minty-border: #C8E6DC;       /* Subtle border green */
+  --minty-text-dark: #2C3E50;    /* Dark body/heading text */
+  --minty-text-muted: #5A6A70;   /* Muted subtitle text */
+}
+
+body {
+  background-color: var(--cream);
+  color: var(--ink);
+  line-height: 1.8;
+  font-size: 16px;
+}
+
+/* ===== Elegant headings ===== */
+h1, h2, h3 {
+  color: var(--forest);
+  letter-spacing: -0.4px;
+  font-weight: 650;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2.5rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid var(--sage);
+}
+
+/* ===== Navigation bar ===== */
+.navbar {
+  box-shadow: 0 3px 12px rgba(38, 53, 45, 0.08);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* ===== Main content ===== */
+main {
+  max-width: 1100px;
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+}
+
+/* ===== Links ===== */
+a {
+  color: var(--forest);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: #527d62;
+}
+
+/* ===== Code blocks ===== */
+pre {
+  border: 1px solid #dce9df;
+  border-radius: 12px;
+  padding: 1.2rem;
+}
+
+/* ===== Tables ===== */
+.table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.table thead th {
+  background-color: var(--sage);
+  color: var(--forest);
+}
+
+/* ===== Images ===== */
+img {
+  border-radius: 12px;
+}
+
+/* ===== Footer ===== */
+.nav-footer {
+  background-color: var(--sage);
+  border-top: none;
+}
+
+/* ===== Smooth interactions ===== */
+a, .btn {
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+
+.hero-banner {
+  background: linear-gradient(135deg, var(--minty-light) 0%, #ffffff 100%);
+  border: 1px solid var(--minty-border);
+  color: var(--minty-text-dark);
+  padding: 3.5rem 2rem;
+  border-radius: 16px;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 10px 25px -5px rgba(120, 194, 173, 0.15);
+}
+
+.hero-banner h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--minty-forest); /* Deep green matching your main section title */
+  margin-top: 0.75rem;
+}
+
+.hero-banner h3, 
+.hero-banner .subtitle {
+  color: var(--minty-text-muted);
+  font-weight: 400;
+}
+
+.badge-course {
+  background-color: var(--minty-primary); /* Matching navbar teal/mint */
+  color: #ffffff;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+

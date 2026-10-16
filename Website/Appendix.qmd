@@ -1,5 +1,6 @@
 ---
 title: "Appendix"
+subtitle: "Data Science for Industry"
 format: html
 editor: visual
 ---

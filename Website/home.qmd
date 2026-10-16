@@ -1,8 +1,20 @@
 ---
-title: "Assignment 2: Image Classification using Neural Networks"
+title: "Introduction"
 subtitle: "Data Science for Industry"
 format: html
 editor: visual
 ---
 
-## HOME: Assignment 2
+## Introduction
+
+This study utilizes a simulated data set of 25,000 handwritten digits collected from 20 participants. Each individual provided 1,250 samples split across 5 sessions, with 50 samples recorded per session. Handwritten samples naturally exhibit intra-writer variability due to inherent personal differences and changing environmental conditions, such as time constraints during exams compared to relaxed note-taking. Nevertheless, underlying individual traits remain consistent, enabling writer identification.
+
+To investigate this data set, we address two core questions: first, whether we can identify a writer across different sessions, and second, whether we can determine if two arbitrary handwritten digits belong to the same person.
+
+To investigate the first research question, we will construct a Convolutional Neural Network (CNN) designed to classify handwritten digit images and assign them to one of the 20 individuals in the data set. To explore the second question, we will develop a Siamese neural network to determine whether two given images originate from the same writer or different writers. Finally, these two models will be evaluated and compared to establish which architecture yields superior performance in terms of accuracy and precision.
+
+## Data Splitting
+
+To build and evaluate our models, the data set is partitioned into three distinct subsets: a training set used to construct the models, a validation set used to evaluate performance and tune hyper-parameters, and a test set for final assessment. Rather than splitting randomly, the data is partitioned by session: **Sessions 1 to 3** form the training set, **Session 4** serves as the validation set, and **Session 5** comprises the test set.
+
+This session-based partitioning is intentional. Because the objective is to recognize each person's handwriting across different writing conditions, every participant must be represented in the training data. Furthermore, because both the Convolutional Neural Network (CNN) and the Siamese network are evaluated and compared directly against one another, maintaining a consistent data split ensures a fair performance comparison across both architectures.
