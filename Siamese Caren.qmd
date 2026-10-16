@@ -508,7 +508,7 @@ build_siamese <- function(train, valid,
   # set seed first -----------
   set_random_seed(seed)
   
-  # Build CNN ----------------------------
+  # Build CNN for siamese ----------------------------
   
   image_input <- layer_input(shape = c(28, 28, 1))
   
@@ -523,7 +523,7 @@ build_siamese <- function(train, valid,
     layer_max_pooling_2d(pool_size = 2) |>
     layer_dropout(rate = dropout_rate)
   
-  # Optional second convolutional layer
+  # Optional second convolutional layer --
   if (double_layer) {
     embedding <- embedding |>
       layer_conv_2d(
@@ -534,7 +534,7 @@ build_siamese <- function(train, valid,
       )
   }
   
-  # Global average pooling and embedding
+  # Global average pooling and embedding -- 
   embedding <- embedding |>
     layer_global_average_pooling_2d() |>
     layer_dense(
@@ -542,7 +542,7 @@ build_siamese <- function(train, valid,
       kernel_regularizer = regularizer_l2(nu)
     )
   
-  # Package encoder together
+  # Package encoder together -- --
   encoder <- keras_model(
     inputs = image_input,
     outputs = embedding
