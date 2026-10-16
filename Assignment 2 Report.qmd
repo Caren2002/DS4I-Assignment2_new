@@ -574,7 +574,7 @@ Performance varied across writers (@tbl-results-writer). Writer 18 achieved the 
 Table. Test classification performance per writer
 :::
 
-Lastly, the AUC value was calculated to be 0.963, indicating that  there is excellent discrimination between same-writer and different-writer pairs across all possible classification thresholds. However, the balanced accuracy of 0.554 (@tbl-results-session) for different-session pairs indicates poor classification performance at the selected threshold, particularly due to low sensitivity (0.112, @tbl-results-session). Overall, the high AUC alongside weak cross-session classification suggests that the model ranks pairs (by distance) well but struggles to correctly identify same-writer pairs across sessions at the chosen threshold.
+Lastly, the AUC value was calculated to be 0.963, indicating that there is excellent discrimination between same-writer and different-writer pairs across all possible classification thresholds. However, the balanced accuracy of 0.554 (@tbl-results-session) for different-session pairs indicates poor classification performance at the selected threshold, particularly due to low sensitivity (0.112, @tbl-results-session). Overall, the high AUC alongside weak cross-session classification suggests that the model ranks pairs (by distance) well but struggles to correctly identify same-writer pairs across sessions at the chosen threshold.
 
 ## Discussion
 
