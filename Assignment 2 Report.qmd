@@ -587,16 +587,10 @@ Performance varied considerably across writers (@tbl-results-writer). Writer 12 
 Table. Test classification performance per writer
 :::
 
-
-
-Overall, the analysis highlights the importance of distinguishing between performance under familiar conditions and generalisation across varying conditions. The model's high specificity but lower sensitivity suggests a tendency to classify pairs as belonging to different writers, particularly when handwriting samples originate from different sessions. This limits its reliability for cross-session writer identification.
-Furthermore, differences in performance across writers suggest that the model may not capture individual handwriting characteristics equally well. However, these differences should be interpreted cautiously, given the limited number of test comparisons per writer.
-
-
 ## Discussion
 
 
-In the Siamese neural network, the training, validation and test data sets differ in their representation of session variability. The training data contain image pairs from multiple sessions, whereas the validation data are restricted to session 4. The test data include both within-session pairs and cross-session pairs, with cross-session comparisons incorporating images from sessions 1–4 and session 5. Consequently, the validation results may not fully reflect the model's ability to generalize across sessions. This is evident in Table @tbl-results-session, where balanced accuracy decreases to 0.680 for cross-session pairs, primarily because sensitivity falls to 0.373. This suggests that the model frequently fails to identify pairs from the same writer when their handwriting samples originate from different sessions.
+In the Siamese neural network, the training, validation and test data sets differ in their representation of session variability. The training data contain image pairs from multiple sessions, whereas the validation data are restricted to session 4. The test data include both within-session pairs and cross-session pairs, with cross-session comparisons incorporating images from sessions 1–4 and session 5. Consequently, the validation results may not fully reflect the model's ability to generalize across sessions. This is evident in @tbl-results-session, where balanced accuracy decreases to 0.680 for cross-session pairs, primarily because sensitivity falls to 0.373. This suggests that the model frequently fails to identify pairs from the same writer when their handwriting samples originate from different sessions.
 
 
 With regards to model performance, since the same-writer and different-writer classes are balanced, a balanced accuracy of 0.50 provides a useful baseline for random guessing. The high validation performance indicates that the model can distinguish between the two classes under the validation conditions. However, the lower cross-session performance suggests that the model struggles to identify the same writer when handwriting samples originate from different sessions. Consequently, the validation results may overstate the model's practical reliability across sessions. Furthermore, repeatedly selecting hyperparameters using the same validation set may lead to overly optimistic estimates of validation performance.
@@ -608,8 +602,16 @@ With regards to model performance, since the same-writer and different-writer cl
 ## Appendix
 
 
-![Contrastive loss as a function of epochs for a one-hidden layer siamese network.](siamese_1_layer_epochs.png){#fig-siamese-1-layer-epochs width=100%}
+The higher training loss visible in @fig-siamese-1-layer-epochs may partly be explained by regularization. Dropout (0.2) randomly disables units during training, making learning more difficult, whereas dropout is switched off during validation. L2 regularization (nu = 0.001) may also contribute to a higher training loss. Furthermore, the validation data may be easier to predict than the training data due to differences in session composition. Therefore, a lower validation loss does not necessarily indicate a problem or data leakage.
+
+![Contrastive loss as a function of epochs for a one-hidden layer siamese network.](siamese_1_layer_epochs.png){#fig-siamese-1-layer-epochs width=100%}  
 
 
-![Incorrect prediction during a different writer-same session combination.](siamese_error3.png){#fig-siamese-error1 width=80%}
-![Incorrect prediction during a different writer-different session combination](siamese_error8.png){#fig-siamese-error2 width=80%}
+
+
+![Incorrect prediction during a different writer-same session combination.](siamese_error3.png){#fig-siamese-error1 width=80%}  
+
+
+![Incorrect prediction during a different writer-different session combination](siamese_error8.png){#fig-siamese-error2 width=80%}  
+
+
