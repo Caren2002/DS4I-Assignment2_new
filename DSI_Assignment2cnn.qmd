@@ -4,6 +4,9 @@ format:
   html:
     toc: true
     embed-resources: true
+editor: 
+  markdown: 
+    wrap: 72
 ---
 ## Aim
 
@@ -62,8 +65,8 @@ The grid shows the digit 2 written by four writers (rows) in each of the five se
 
 ## 2.2 What varies: writer, session or digit?
 
-Simple summaries per image (height, width, centre of mass), then the share of
-variance explained by each factor.
+Simple summaries per image (height, width, centre of mass), then the
+share of variance explained by each factor.
 
 ```{r}
 #Building the features
@@ -91,25 +94,80 @@ for (v in c("h", "w", "cx", "cy")) {
           setNames(trimws(rownames(ss))))
 }
 ```
+<<<<<<< HEAD
+
+Each row is one measurement taken on every image, and each column is a
+possible source of variation. The numbers are the percentage of that
+measurement’s total variation explained by each source, so every row
+adds to 100.
+=======
 For each of four simple measurements taken on every image, the table gives the percentage of its total variation explained by each source, so each row adds to 100. This section is descriptive and uses all five sessions; nothing here is used to choose a model. The percentages are shares of variance, not significance tests. Height and width come from a rough brightness cutoff (pixels above 0.3), so they are approximate. The design is balanced, so the order of the terms in the model does not change the shares.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
 **The four measurements**
 
+<<<<<<< HEAD
+h: height of the digit in pixels w: width of the digit cx: horizontal
+position of the ink (left to right) cy: vertical position of the ink
+(top to bottom)
+=======
 - `h`: height of the digit in pixels
 - `w`: width of the digit
 - `cx`: horizontal position of the ink (left to right)
 - `cy`: vertical position of the ink (top to bottom)
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
 **The five sources**
 
+<<<<<<< HEAD
+digit: variation because a 0 looks different from a 1, 2, 3 or 4
+person_id: variation because different writers write differently
+session: variation because of the recording session, the same for
+everyone person_id:session: variation because a particular writer wrote
+differently in a particular session Residuals: the leftover variation
+between replicates in the same writer-digit-session
+=======
 - `digit`: variation because a 0 looks different from a 1, 2, 3 or 4
 - `person_id`: variation because different writers write differently
 - `session`: variation because of the recording session, the same for everyone
 - `person_id:session`: variation because a particular writer wrote differently in a particular session
 - Residuals: everything the four terms do not capture. This is the variation between replicates of the same writer, digit and session, but it also contains any interaction involving digit (for example a writer who places a 1 differently from a 4), because those terms are not in the model.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
 **Reading each row**
 
+<<<<<<< HEAD
+h (height): 62.9% is person. Writers differ mainly in how tall they
+write, and a writer’s height hardly changes between sessions (only
+2.9%). Height is a stable signature. w (width): it’s split between digit
+(43.5%, since a 1 is narrow and a 0 is wide) and person (40.5%). Writers
+differ in width too, and again sessions add little (6.8%). cx
+(horizontal position): digit 31.6% and person 34.4%, so where a writer
+places the digit sideways is fairly consistent. Session × person is
+larger here (10.3%). cy (vertical position): this is the odd one. Person
+is only 10.3%, but person × session is 17.0% and residuals are 57.3%. A
+writer’s vertical placement shifts from session to session and from
+image to image, so it is a poor feature for identifying writers.
+
+What the table says overall
+
+The session column is under 1% everywhere. No session is shifted for
+everyone, so session 4 isn’t an unusual session. This supports treating
+sessions as interchangeable groupings. Person is large for height, width
+and horizontal position. Writers differ in measurable ways, and these
+differences hold across sessions. Person × session is small for height
+and width, larger for cx and cy. Handwriting shifts between sessions
+mostly in position, much less in size. Residuals show replicate noise.
+Large for cy (57%), small for w (9%).
+
+## 2.3 Do a writer's sessions look alike?
+
+Average image per writer x digit x session (sessions 1-4 only), then
+compare distances between cells.
+
+"how different do two handwriting samples look, depending on whether
+they come from the same writer or the same session?"
+=======
 - **h (height):** 62.9% is person. Writers differ mainly in how tall they write, and a writer's height hardly changes between sessions (person x session is only 2.9%). Height is a stable signature of the writer.
 - **w (width):** split between digit (43.5%, since a 1 is narrow and a 0 is wide) and person (40.5%). Writers differ in width too, and sessions add little (6.8%).
 - **cx (horizontal position):** digit 31.6% and person 34.4%, so where a writer places the digit sideways is fairly consistent. Person x session is larger here (10.3%).
@@ -126,6 +184,7 @@ For each of four simple measurements taken on every image, the table gives the p
 ## 2.3 Do a writer's sessions look alike?
 
 The question is how different two handwriting samples look depending on whether they come from the same writer or the same session. For each writer x digit x session cell we average the 50 replicates into one image, then compare the average images of different cells. Only sessions 1-4 are used, so the test session stays unseen. Each digit is compared only with the same digit, and distances are Euclidean distances in pixel space.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
 ```{r}
 dist_table <- function(M) {
@@ -151,6 +210,8 @@ colnames(dtab) <- paste("digit", 0:4)
 round(dtab, 2)
 round(dtab["same_writer_diff_session", ] / dtab["diff_writer_diff_session", ], 2)
 ```
+<<<<<<< HEAD
+=======
 The table has one column per digit and three rows; the last line gives the ratio of the first row to the third. Distances are in pixel units, so the absolute numbers mean little. What matters is how the rows compare.
 
 - **Same writer, different session is smaller than different writer** (6.35-7.06 against 7.85-8.79). On average, a writer's average digit in one session is closer to their own average digit in another session than to other writers' digits. This is the signal behind accuracy that is well above chance.
@@ -160,12 +221,40 @@ The table has one column per digit and three rows; the last line gives the ratio
 - **Caveats.** These are distances between averages of 50 replicates, which removes replicate noise, so single images are harder to tell apart than this suggests. Pixel distance is also sensitive to small shifts, so part of the same-writer distance may be position wobble and not a change of style (we did not test this). Finally, the ratio is an average over writers and hides large differences between them.
 
 A new session of a writer therefore often resembles another writer's earlier sessions about as much as that writer's own, which is consistent with the moderate accuracy in section 6.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
+Distances are in pixel units, so the absolute numbers mean little. What
+matters is how the rows compare.
 
+Same writer, different session (about 6.4-7.1) is smaller than different
+writer (about 7.9-8.8). So a writer’s handwriting is on average closer
+to their own other sessions than to other people’s. That’s the signal
+that makes any writer recognition possible. But only a bit smaller. The
+ratio is 0.80, 0.83, 0.81, 0.81 and 0.80. A writer’s average digit
+changes between sessions by about 80% of the distance to a different
+writer’s digit. The gap between “my own handwriting next week” and
+“someone else’s handwriting” is small. The ratio is almost the same for
+all five digits, so this isn’t a quirk of one digit. Rows 2 and 3 are
+practically identical (8.78 vs 8.79, and so on). Different writers are
+no closer to each other in the same session than in different sessions.
+So there’s no shared session effect: sessions don’t shift everyone in
+the same direction. That agrees with the variance table, where session
+explained under 1%, and it supports treating sessions as interchangeable
+and holding one out.
 
+A writer’s average digit changed between sessions by about 80% of the
+distance to another writer’s digit, so writer identity is only
+moderately more stable than session-to-session variation. Different
+writers were equally far apart within and between sessions, indicating
+no shared session effect.
 
 # 3. Train / validation / test split (by session)
 
+<<<<<<< HEAD
+Images within a writer-session are near-duplicates, so we split by
+session: sessions 1-3 train, session 4 validation, session 5 test (used
+once, at the end).
+=======
 Images within one writer's session are near-duplicates: the 50 replicates of a digit are almost identical, so a random split of images would put near-copies of the same sample in both the training and the test data and give an inflated score. We therefore split by recording session, which makes the test a genuinely new recording by a known writer:
 
 - **Training:** sessions 1-3 (15,000 images, 750 per writer)
@@ -173,6 +262,7 @@ Images within one writer's session are near-duplicates: the 50 replicates of a d
 - **Test:** session 5 (5,000 images, 250 per writer), used only for the final evaluation
 
 Every writer appears in all three sets, which is required because the model can only predict writers it was trained on (a closed population of 20 writers). Because the settings were chosen on the validation session, its scores are slightly optimistic, so the test session gives the figure we report.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
 ```{r}
 tr <- meta$session %in% 1:3
@@ -197,6 +287,8 @@ table(meta$person_id[te])[1:3]     # 250 per writer
 ```
 The three sets have 15,000, 5,000 and 5,000 images, each 28 x 28 x 1, and the counts per writer are equal in every set. The labels are the writer ID recoded to 0-19 and one-hot encoded, with 20 columns, one per writer. The model predicts the writer whatever digit was written, so the digit is not used as an input or a label.
 
+<<<<<<< HEAD
+=======
 Splitting by session has consequences for how the results should be read:
 
 - Training uses only three sessions per writer, so the model sees just three examples of how each writer varies between sessions.
@@ -205,6 +297,7 @@ Splitting by session has consequences for how the results should be read:
 
 
 
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 # 4. Baselines (validation accuracy, session 4)
 
 ```{r}
@@ -248,6 +341,12 @@ par(mfrow = c(1, 1))
 ```
 The nearest-centroid classifier reached 45.6% accuracy on the validation session and the linear model 47.6% after 20 epochs (validation cross-entropy about 1.85), against 5% expected by chance with 20 writers. Both are far above chance, so writer identity is visible in the raw pixels even without any learned features.
 
+<<<<<<< HEAD
+# 5. CNN models
+
+#Base model with defaults
+
+=======
 - **The two baselines are close to each other.** A method that learns nothing performs about as well as a linear model. The 2-point difference is well within noise, so neither can be called better.
 - **The linear model's curves are well behaved.** Validation accuracy rises quickly over the first five epochs and then slowly, and is still creeping up slightly at epoch 20. Validation cross-entropy falls from about 2.7 to a minimum of about 1.84 around epochs 14-17 and is flat after that. Twenty epochs is therefore a reasonable stopping point, and more epochs would add little. Because this was read off the validation curves, the baseline is lightly tuned on the validation session.
 - **Both baselines set the reference for the CNN.** If the CNN were no better than these, its extra complexity would not be justified. They are compared on the test session in section 6.
@@ -259,6 +358,7 @@ The nearest-centroid classifier reached 45.6% accuracy on the validation session
 ## 5.1 Model definition and the default CNN
 
 One function, `build_cnn()`, builds every CNN in this report: two convolutional layers, max pooling, flatten, and a softmax output with one unit per writer. Its arguments are the settings that are tuned later (activation, dropout rate, learning rate, number of filters, kernel size, pool size and the L2 penalty `nu`). The defaults are the lecture's CNN: ReLU, dropout 0.2, learning rate 0.01, 16 filters of 3 x 3, 2 x 2 max pooling and no penalty. The softmax output matches the course notes' recommendation for a categorical response, and the loss is categorical cross-entropy.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 ```{r}
 compile_model <- function(model, lr) {
   model %>% compile(loss = "categorical_crossentropy",
@@ -391,6 +491,8 @@ str(best1$lr)
 
 ```
 
+<<<<<<< HEAD
+=======
 The chosen configuration is **tanh, learning rate 0.0001, dropout 0.7**, with a mean validation accuracy of 59.15% and a validation cross-entropy of 1.89 over the three seeds.
 
 - **Two families of learning rates dominate.** At a learning rate of 0.00003, tanh models reached about 55-56% accuracy with the lowest cross-entropy in the grid (about 1.47-1.50). At 0.0001 they reached about 57-59% accuracy but with a higher cross-entropy (about 1.89-2.02). The very small rate (0.00001) under-trained: training accuracy was only about 50-60% and validation accuracy about 46%. Accuracy and cross-entropy therefore point to different learning rates, and the rank-sum rule settled the choice in favour of 0.0001.
@@ -407,6 +509,7 @@ With the activation (tanh), learning rate (0.0001) and dropout (0.7) from Stage 
 Here the selection rule is a tolerance rule. We keep the architectures whose validation cross-entropy is within 30% of the lowest one, and among those choose the one with the highest validation accuracy. This puts accuracy first while excluding architectures that are much worse calibrated. The 30% was fixed before Stage 2 was run, but after the Stage 1 results had been seen, so it is partly a judgement.
 
 
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 ```{r}
 
 # =====================================================================
@@ -467,6 +570,9 @@ best2
 ```
 The chosen architecture is the one the lecture used: **16 filters, 3 x 3 kernels and 2 x 2 pooling**. It reached a mean validation accuracy of 59.1% (standard deviation 0.5 points across seeds) and a validation cross-entropy of 1.89, with a training accuracy of 97.9% (measured with dropout active, so it understates the real fit). These figures are identical to those of the Stage 1 winner, because it is the same configuration with the same seeds, which also confirms that the runs are reproducible.
 
+<<<<<<< HEAD
+Checking epochs on the best model based on tuning
+=======
 - **Changing the size of the convolutional layers did not improve on the default.** [Say how many of the other 11 architectures were inside the cross-entropy tolerance, and what the best of them scored, for example "the next best (32 filters, 3 x 3, pool 2) reached [..]% accuracy and a cross-entropy of [..]".]
 - **Differences between architectures are within the seed spread** [if true: the accuracies of the architectures inside the tolerance lay within about [..] points of each other, no larger than the standard deviation across seeds of 0.5-2.4 points], so the grid cannot separate them, and the default is chosen by the rule.
 - **Limits of this stage.** Dropout of 0.7 was chosen with the default architecture, and larger layers (more filters, or a smaller pool) have more parameters in the dense layer and might suit a different dropout rate. The staged search does not test such interactions. As before, the 59.1% is optimistic because the architecture was selected on the same validation session.
@@ -543,6 +649,7 @@ The chosen architecture is the one the lecture used: **16 filters, 3 x 3 kernels
 Stages 1 and 2 trained every model for 10 epochs. Here the chosen configuration (tanh, learning rate 0.0001, dropout 0.7, 16 filters, 3 x 3 kernels, 2 x 2 pooling, no penalty) is trained for 60 epochs, one epoch at a time, with the three seeds, and the validation accuracy and cross-entropy are recorded after every epoch. The curves are averaged over the seeds.
 
 Accuracy and cross-entropy usually do not agree on when to stop, so the epoch is chosen with the same tolerance rule as in Stage 2: among the epochs whose cross-entropy is within 30% of its minimum, take the one with the highest validation accuracy. The check is run without a penalty, because the penalty is searched afterwards.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
 ```{r}
 nu_sel <- 0          # set to the 0 for now
@@ -603,7 +710,11 @@ The penalty adds `nu` times the sum of the squared weights to the loss, which sh
 
 The penalty is searched over eight values from 0 to 0.3, with every other setting fixed at the values chosen above (tanh, learning rate 0.0001, dropout 0.7, 16 filters, 3 x 3 kernels, 2 x 2 pooling) and 10 epochs. Each value is fitted with three seeds. As in the course script, we find the value with the lowest validation cross-entropy, computed without the penalty term, and use the next larger value as the conservative choice. The minimum of a noisy curve is optimistic, so stepping towards more regularisation favours the simpler model.
 
+<<<<<<< HEAD
+#choose nu by validation accuracy
+=======
 
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
 ```{r}
 n_epochs <- 10
@@ -659,6 +770,8 @@ abline(v = which(nus == nu_final_conservative), lty = 1)
 par(mfrow = c(1, 1))
 ```
 
+<<<<<<< HEAD
+=======
 The validation cross-entropy is U-shaped in `nu`. It falls from 1.89 without a penalty to a minimum of 1.39 at `nu` = 0.03, then rises to 1.45 at 0.1, and reaches 2.99 at 0.3. That last value is almost exactly the cross-entropy of guessing evenly among 20 writers (ln 20 = 3.0): with this penalty the model could not learn (mean validation accuracy 13.5%, with a standard deviation of 14.7 points across seeds, consistent with some seeds failing completely).
 
 - **The penalty mainly improves calibration.** Moving from no penalty to 0.1 lowers the validation cross-entropy from 1.89 to 1.45, far more than the spread across seeds (0.003 to 0.04). Validation accuracy rises by about 2 points (59.1% to 61.2%), more than the seed spread of 0.5 to 0.9 points but small compared with the change in cross-entropy.
@@ -668,6 +781,7 @@ The validation cross-entropy is U-shaped in `nu`. It falls from 1.89 without a p
 - **Limits.** The penalty was chosen at 10 epochs, a number selected without a penalty, and a penalised model overfits more slowly, so its best number of epochs may be larger. As with the other stages, the validation scores of the chosen setting are optimistic because it was selected on the same session.
 
 
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 ```{r}
 # nus <- c(0, 1e-4, 1e-3, 3e-3, 1e-2, 3e-2, 1e-1, 3e-1)
 # y_val_idx <- y_all[va]
@@ -710,8 +824,6 @@ The validation cross-entropy is U-shaped in `nu`. It falls from 1.89 without a p
 
 
 ```
-
-
 
 ```{r}
 # Compare activation functions tanh and relu
@@ -820,7 +932,10 @@ After 10 epochs the two models behave very differently:
 
 # 6. Final evaluation (session 5, used once)
 
-The final model is the tuned CNN (cnn_reg), fixed before looking at the test session. The default CNN and the two baselines are scored on the same session for comparison only. Nothing was changed after seeing these results.
+The final model is the tuned CNN (cnn_reg), fixed before looking at the
+test session. The default CNN and the two baselines are scored on the
+same session for comparison only. Nothing was changed after seeing these
+results.
 
 ```{r}
 final    <- cnn_reg
@@ -876,6 +991,22 @@ paired <- function(a, b) {
 round(rbind(vs_default_cnn = paired(a_cnn, a_base),
             vs_linear      = paired(a_cnn, a_lin)), 3)
 ```
+<<<<<<< HEAD
+
+## What the output shows
+
+**Accuracy.** The tuned CNN identified the writer for 55% of the images
+in the held-out session, compared with 49% for the default CNN, 47% for
+nearest centroid and 44% for the linear model (5% expected by chance). A
+95% interval for the tuned CNN, resampling writers, is 43% to 67%.
+Paired across writers, the tuned CNN scored 11.4 percentage points
+higher than the linear model (95% interval 4.1 to 18.9), so that
+difference is unlikely to be due to which writers were sampled. Its
+5.7-point lead over the default CNN (interval −1.9 to 13.6) cannot be
+distinguished from zero. The nearest-centroid classifier was not tested
+formally. The linear baseline was not tuned, so part of its deficit
+reflects tuning effort and not the convolutional structure.
+=======
 | Model | Test accuracy | Test cross-entropy |
 |---|---|---|
 | Nearest centroid | 47.3% | not computed |
@@ -889,15 +1020,56 @@ Test session (session 5), 5,000 images, 250 per writer. Each figure comes from o
 ## What the output shows
 
 **Accuracy.** The tuned CNN identified the writer for 55% of the images in the held-out session, compared with 49% for the default CNN, 47% for nearest centroid and 44% for the linear model (5% expected by chance). A 95% interval for the tuned CNN, resampling writers, is 43% to 67%. Paired across writers, the tuned CNN scored 11.4 percentage points higher than the linear model (95% interval 4.1 to 18.9), so that difference is unlikely to be due to which writers were sampled. Its 5.7-point lead over the default CNN (interval -1.9 to 13.6) cannot be distinguished from zero. The nearest-centroid classifier was not tested formally. The linear baseline was only lightly tuned (its learning rate and number of epochs were set from its own validation curves), so part of its deficit reflects tuning effort and not the convolutional structure.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
-**Cross-entropy.** The tuned model's test cross-entropy was 1.39, below the 3.0 expected from guessing evenly, whereas the default CNN scored 5.87, about twice that value (one training run per model). The default model is therefore overconfident: its predictions are wrong about half the time, but it assigns high probability to its wrong answers. This is the clearest difference between the two CNNs.
+**Cross-entropy.** The tuned model's test cross-entropy was 1.39, below
+the 3.0 expected from guessing evenly, whereas the default CNN scored
+5.87, about twice that value (one training run per model). The default
+model is therefore overconfident: its predictions are wrong about half
+the time, but it assigns high probability to its wrong answers. This is
+the clearest difference between the two CNNs.
 
+<<<<<<< HEAD
+**Validation against test.** The untuned baselines changed by less than
+3 points between validation and test (nearest centroid 0.456 to 0.473,
+linear model 0.460 to 0.436). The tuned CNN fell by 5.4 points (0.604 to
+0.550). This is consistent with its settings having been selected on the
+validation session, which makes that score optimistic, and it is why we
+report the test-session result.
+
+**Writers.** Accuracy ranged from 0% to 100%. Writers 7 and 18 were
+identified in every image, and writers 6, 8, 15 and 17 in 76–85% of
+their images. Writers 5 and 13 were never identified, and writers 10, 16
+and 20 in fewer than 35%. Writers 5 and 13 were also the hardest for an
+earlier, differently configured model, which suggests the difficulty
+comes from the data and not from one model.
+
+**Errors.** The model over-assigns a few writers: writer 2 received 459
+predictions, writer 7 received 398 and writer 8 received 376, against a
+fair share of 250. Many errors are specific pairs; for example, most of
+writer 10's images were labelled as writer 2, and most of writer 5's as
+writer 13. Errors come in blocks, because the 50 replicates in a
+writer-digit cell are near-identical and are usually classified the same
+way, so the effective sample size is about 100 cells and not 5,000
+images.
+=======
 **Validation against test.** The nearest-centroid classifier, which has nothing to tune, changed by under 2 points between validation and test (45.6% to 47.3%). The linear model, which was lightly tuned on the validation session, fell by 4 points (47.6% to 43.6%), and the tuned CNN by 5.4 points (60.4% to 55.0%), its settings having been selected from many candidates on the validation session. Validation scores of models tuned on the validation session are optimistic, which is why we report the test-session results. The drops are of similar size, and the figures are too imprecise (about 100 independent cells per session) to say whether tuning caused them.
 
 **Writers.** Accuracy ranged from 0% to 100%. Writers 7 and 18 were identified in every image, and writers 6, 8, 15 and 17 in 76-85% of their images. Writer 5 was never identified and writer 13 in only 1 of 250 images; writers 10, 16 and 20 were identified in fewer than 35%. Writers 5 and 13 were also the hardest for an earlier, differently configured model, which suggests the difficulty comes from the data and not from one model.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
-**Digits.** Accuracy was between 50% and 59% for every digit, with no digit clearly easier. With about 20 test cells per digit, these differences are within noise.
+**Digits.** Accuracy was between 50% and 59% for every digit, with no
+digit clearly easier. With about 20 test cells per digit, these
+differences are within noise.
 
+<<<<<<< HEAD
+**Interpretation.** Writers differ in measurable ways (height, width and
+horizontal position), but a writer's average digit in a new session is
+only about 20% closer to their earlier sessions than to another writer's
+handwriting (distance ratio about 0.8). A new session therefore often
+resembles another writer's training data, which limits accuracy for
+every model.
+=======
 **Interpretation.** Writers differ in measurable ways (height, width and horizontal position), but a writer's average digit in a new session is only about 20% closer to their earlier sessions than to another writer's handwriting (distance ratio about 0.8). A new session therefore often resembles another writer's training data, which is consistent with the moderate accuracy of every model.
 
 **Process.** All model settings were chosen on the validation session (session 4) and fixed before the test session was scored. A test result from an earlier configuration was seen before the tuning was redone, and nothing was changed after the final results were produced. Several models were scored on the test session for comparison, but none was used to choose a setting.
@@ -910,7 +1082,12 @@ Test session (session 5), 5,000 images, 250 per writer. Each figure comes from o
 - The comparisons between models rest on single training runs of each final model. The paired intervals reflect which writers were sampled, not variation between random starts.
 - The baselines received less tuning than the CNN.
 - Only one session was held out for validation and one for the test, so we cannot say how results vary between sessions.
+>>>>>>> 26f8061f7129e1e2c9e419cc097cccce667f986d
 
+**Process.** All model settings were chosen on the validation session
+(session 4) and fixed before the test session was scored. A test result
+from an earlier configuration was seen before the tuning was redone, and
+nothing was changed after the final results were produced.
 
 ```{r}
 # Confusion matrix (writers labelled by person_id, not the 0-19 model labels)
@@ -926,5 +1103,23 @@ round(conf / rowSums(conf), 2)
 sort(colSums(conf), decreasing = TRUE)[1:5]
 ```
 
-
-**Confusion matrix.** The errors are concentrated in particular writer pairs and not spread evenly. Writers 7 and 18 are identified perfectly (250 of 250 images). Several other writers lose a large share of their images to one other writer: 71% of writer 10's images (177) are labelled as writer 2, 60% of writer 5's (150) as writer 13, and 40% of writer 16's (100) as writer 1. Some confusions run in both directions, which may mean the two writers' handwriting is similar (we did not check this): writers 1 and 16 (48 of writer 1's images labelled as 16, and 100 of writer 16's as 1), writers 14 and 15 (48 and 47), and writers 6 and 17 (40 and 37). Writer 13 is correct for only 1 image of 250, and the rest are spread across writers 8 (90), 20 (76), 4 (39) and 7 (22). Writer 20's images go mainly to writers 2 (82), 1 (48) and 11 (39), with 68 correct. The model also over-assigns a few writers: writer 2 receives 459 predictions (144 correct, 177 from writer 10, 82 from writer 20, 50 from writer 12 and 6 from writer 13), against a fair share of 250. Many of the larger counts are close to 50, 100 or 150, the size of one or more writer-digit cells of near-identical images, so the model tends to assign a whole cell to a single writer. This is why the effective sample is about 100 cells and not 5,000 images, and why the interval for accuracy is wide.
+**Confusion matrix.** The errors are concentrated in particular writer
+pairs and not spread evenly. Writers 7 and 18 are identified perfectly
+(250 of 250 images). Several other writers lose a large share of their
+images to one other writer: 71% of writer 10's images (177) are labelled
+as writer 2, 60% of writer 5's (150) as writer 13, and 40% of writer
+16's (100) as writer 1. Some confusions run in both directions, which
+may mean the two writers' handwriting is similar (we did not check
+this): writers 1 and 16 (48 of writer 1's images labelled as 16, and 100
+of writer 16's as 1), writers 14 and 15 (48 and 47), and writers 6 and
+17 (40 and 37). Writer 13 is correct for only 1 image of 250, and the
+rest are spread across writers 8 (90), 20 (76), 4 (39) and 7 (22).
+Writer 20's images go mainly to writers 2 (82), 1 (48) and 11 (39), with
+68 correct. The model also over-assigns a few writers: writer 2 receives
+459 predictions (144 correct, 177 from writer 10, 82 from writer 20, 50
+from writer 12 and 6 from writer 13), against a fair share of 250. Many
+of the larger counts are close to 50, 100 or 150, the size of one or
+more writer-digit cells of near-identical images, so the model tends to
+assign a whole cell to a single writer. This is why the effective sample
+is about 100 cells and not 5,000 images, and why the interval for
+accuracy is wide.
