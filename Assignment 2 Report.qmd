@@ -628,3 +628,4 @@ The higher training loss visible in @fig-siamese-1-layer-epochs may partly be ex
 - Kalinowski T, Ushey K, Allaire J, Tang Y (2026). *reticulate: Interface to 'Python'*. doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.
 
 - OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026).
+ 
