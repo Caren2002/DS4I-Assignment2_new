@@ -11,7 +11,7 @@ website:
       - href: home.qmd
         text: Introduction
       - href: EDA.qmd
-        text: Explanatory Data Analysis
+        text: Exploratory Data Analysis
       - href: CNN.qmd
         text: Convolutional Neural Network
       - href: siamese.qmd
