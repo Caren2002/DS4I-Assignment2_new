@@ -1,5 +1,5 @@
 ---
-title: "EDA Rough"
+title: "STA5073Z Assignment 2 code"
 format: html
 editor: visual
 ---
