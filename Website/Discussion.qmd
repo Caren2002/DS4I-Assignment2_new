@@ -5,7 +5,7 @@ format: html
 editor: visual
 ---
 
-## Discussion
+
 
 The CNN shows that a writer can be identified from a single digit well above chance, but not reliably. On the held-out session the tuned network named the correct writer for 55.0% of the images, against 5% expected by guessing, and it scored 11.4 percentage points higher than the linear baseline, a difference that the choice of writers is unlikely to explain. It was not clearly better than the default CNN in accuracy (a lead of 5.7 points, interval $-1.9$ to 13.6), but its probabilities were far better calibrated: a cross-entropy of 1.39 against 5.87. The interval for the tuned model (42.7% to 67.1%) is wide, because each session holds only about 100 independent writer-digit cells.
 
