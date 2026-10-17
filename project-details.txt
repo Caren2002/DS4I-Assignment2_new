@@ -11,11 +11,12 @@ We all participated in the frequent discussions surrounding how to tune the para
 Mishka worked on the Siamese network. 
 We all contributed to the assignment report. Each person edited their own section and added the corresponding code. 
 Caren created the website template and each member added their individual sections to the website.
-Overall, there were frequent discussions about the assignment brief and any problems or challenges that arose as we worked on the assignment together. 
+Overall, there were frequent discussions about the assignment brief and any problems or challenges that arose as we worked on the assignment. 
 
 
 (b)
-LINK TO WEBSITE ON GITHUB:
+LINK TO WEBSITE ON GITHUB: 
+https://mish827.github.io/DS4I-Assignment2/
 
 (c)
 GITHUB REPOSITORY:  
