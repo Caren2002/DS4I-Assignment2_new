@@ -48,7 +48,7 @@ display_image <- function(img, title = "") {
 
 ::: {#tbl-dataset_summary}
 | Metadata Attribute | Value / Description |
-|:-----------------------------------|:-----------------------------------|
+|:---|:---|
 | Person ID Range (`person_id`) | 1 - 20 (20 unique subjects) |
 | Session ID Range (`session`) | 1 - 5 (5 distinct sessions) |
 | Digit Classes (`digit`) | 0 - 4 (5 classes) |
@@ -77,19 +77,19 @@ Table. Percentage of Variance Decomposition for Features
 
 To evaluate the stability and discriminative power of spatial feature measurements across handwritten digit samples, a variance decomposition analysis was conducted. The analysis decomposes total variance across four spatial metrics into five distinct components:
 
-- **Feature Metrics:** Digit height ($h$), digit width ($w$), horizontal center of mass ($cx$), and vertical center of mass ($cy$).
+-   **Feature Metrics:** Digit height ($h$), digit width ($w$), horizontal center of mass ($cx$), and vertical center of mass ($cy$).
 
-- **Variance Components:** Digit identity (**Digit**), writer identity (**Person ID**), baseline session main effect (**Session**), writer-by-session interaction (**Person ID : Session**), and random residual variation across replicates (**Residuals**).
+-   **Variance Components:** Digit identity (**Digit**), writer identity (**Person ID**), baseline session main effect (**Session**), writer-by-session interaction (**Person ID : Session**), and random residual variation across replicates (**Residuals**).
 
 #### Feature Interpretation
 
-- **Digit Height (**$h$): Writer identity (**Person ID**) accounts for the dominant share of variance at **62.9%**, whereas the interaction effect (**Person ID : Session**) accounts for only **2.9%**. This demonstrates that character height serves as a highly stable, writer-specific trait that remains robust across distinct recording sessions.
+-   **Digit Height (**$h$): Writer identity (**Person ID**) accounts for the dominant share of variance at **62.9%**, whereas the interaction effect (**Person ID : Session**) accounts for only **2.9%**. This demonstrates that character height serves as a highly stable, writer-specific trait that remains robust across distinct recording sessions.
 
-- **Digit Width (**$w$): Total variance is primarily partitioned between digit identity (**43.5%**) and writer identity (**40.5%**). Naturally, character width varies intrinsically across different digits (e.g., a digit '1' versus a digit '0'); nevertheless, substantial inter-writer variance persists with minimal session-induced fluctuation (**6.8%**).
+-   **Digit Width (**$w$): Total variance is primarily partitioned between digit identity (**43.5%**) and writer identity (**40.5%**). Naturally, character width varies intrinsically across different digits (e.g., a digit '1' versus a digit '0'); nevertheless, substantial inter-writer variance persists with minimal session-induced fluctuation (**6.8%**).
 
-- **Horizontal Position (**$cx$): Influenced moderately by both digit identity (**31.6%**) and writer identity (**34.4%**). Individual writers maintain consistent horizontal placement habits, though a moderate writer-by-session interaction (**10.3%**) indicates minor positional shifts across recording instances.
+-   **Horizontal Position (**$cx$): Influenced moderately by both digit identity (**31.6%**) and writer identity (**34.4%**). Individual writers maintain consistent horizontal placement habits, though a moderate writer-by-session interaction (**10.3%**) indicates minor positional shifts across recording instances.
 
-- **Vertical Position (**$cy$): Exhibits poor stability for writer discrimination. Main writer variance accounts for only **10.3%**, whereas writer-by-session interaction (**17.0%**) and residual noise (**57.3%**) dominate total variance. Consequently, vertical alignment varies substantially between sessions and individual stroke replicates, making it an unreliable feature for writer identification.
+-   **Vertical Position (**$cy$): Exhibits poor stability for writer discrimination. Main writer variance accounts for only **10.3%**, whereas writer-by-session interaction (**17.0%**) and residual noise (**57.3%**) dominate total variance. Consequently, vertical alignment varies substantially between sessions and individual stroke replicates, making it an unreliable feature for writer identification.
 
 Overall, the variance decomposition yields several key insights regarding feature stability and writer discriminability. Main session effects contribute less than 1% across all spatial metrics (0.1%–0.6%), indicating that no single recording session exhibits global systematic bias or baseline shift, which supports the assumption that sessions represent comparable sampling conditions. Furthermore, inter-individual variance (**Person ID**) constitutes a major proportion of total variation for height, width, and horizontal positioning, confirming that individual writers possess measurable, repeatable handwriting characteristics that generalize across distinct sessions. Finally, handwriting variations between sessions manifest primarily as spatial positional shifts ($cx, cy$) rather than structural or dimensional resizing ($h, w$).
 
@@ -273,14 +273,13 @@ These problems have the potential to cause over fitting in the models. The way t
 
 All analyses were conducted in R (R Core Team, 2026), and used the following packages:
 
-- keras3 (Kalinowski et al., 2026) for neural network model building and training\
-- tidyverse (Wickham et al., 2019) for convenient data manipulation\
-- imager (Barthelme, 2025) for image processing and manipulation\
-- pROC (Xavier et al., 2011) for calculation of the area under the curve\
-- reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend 
+-   keras3 (Kalinowski et al., 2026) for neural network model building and training\
+-   tidyverse (Wickham et al., 2019) for convenient data manipulation\
+-   imager (Barthelme, 2025) for image processing and manipulation\
+-   pROC (Xavier et al., 2011) for calculation of the area under the curve\
+-   reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
 
-Seeds were set throughout the analyses to ensure reproducibility of results. 
-
+Seeds were set throughout the analyses to ensure reproducibility of results.
 
 \newpage
 
@@ -288,11 +287,11 @@ Seeds were set throughout the analyses to ensure reproducibility of results.
 
 A convolutional neural network (CNN) was built to answer the first research question: can a writer be identified from a single handwritten digit? Each image is assigned to one of the 20 writers, whatever digit it shows, so the digit is neither an input nor a label. The network outputs one probability per writer (a softmax layer) and the predicted writer is the one with the highest probability. Pixel values were divided by 255, and the training, validation and test sessions are those described under Data Splitting. Training used categorical cross-entropy loss, the Adam optimiser and batches of 64 images.
 
-**Architecture.** The network has two convolutional layers (16 filters of 3 $\times$ 3 each, followed by an activation function), dropout after the first convolutional layer, 2 $\times$ 2 max pooling, a flatten layer and a 20-unit softmax output layer. This gives 48,580 trainable parameters, 95% of them in the output layer. When an L2 penalty is used, it is applied to the weights of both convolutional layers and the output layer.
+The network has two convolutional layers (16 filters of 3 $\times$ 3 each, followed by an activation function), dropout after the first convolutional layer, 2 $\times$ 2 max pooling, a flatten layer and a 20-unit softmax output layer. This gives 48,580 trainable parameters, 95% of them in the output layer. When an L2 penalty is used, it is applied to the weights of both convolutional layers and the output layer.
 
-**Reference models.** Three other models give context for the results. The *default CNN* has the same architecture with the settings of the course example (ReLU, dropout 0.2, learning rate 0.01, no penalty). The *nearest-centroid classifier* averages each writer's training images of a digit into a template and assigns a new image to the writer whose template for that digit is closest. The *linear model* is a softmax regression on the 784 pixels, with no hidden layer. The linear model's learning rate and number of epochs were set from its own validation curves, so it is lightly tuned.
+Three other models give context for the results. The *default CNN* has the same architecture with the settings of the course example (ReLU, dropout 0.2, learning rate 0.01, no penalty). The *nearest-centroid classifier* averages each writer's training images of a digit into a template and assigns a new image to the writer whose template for that digit is closest. The *linear model* is a softmax regression on the 784 pixels, with no hidden layer. The linear model's learning rate and number of epochs were set from its own validation curves, so it is lightly tuned.
 
-**Tuning.** All settings of the final CNN were chosen on the validation session only (session 4), in four stages, with three random seeds per candidate:
+All settings of the final CNN were chosen on the validation session only (session 4), in four stages, with three random seeds per candidate:
 
 1.  activation function (tanh or ReLU), learning rate (0.003 down to 0.00001) and dropout rate (0.1 to 0.7): 72 combinations, ranked on validation accuracy and on validation cross-entropy, with the two ranks added;
 2.  number of filters (8, 16 or 32), kernel size (3 or 5) and pool size (2 or 3): 12 combinations, choosing the highest accuracy among those whose cross-entropy was within 30% of the best;
@@ -301,11 +300,11 @@ A convolutional neural network (CNN) was built to answer the first research ques
 
 Cross-entropy was computed from the predicted probabilities without the penalty term, so it can be compared across penalties. Accuracy and cross-entropy preferred different settings in the first stage, and the rank rule was chosen after seeing that, so it is partly a judgement.
 
-**Evaluation.** The final model was fixed before the test session (session 5) was scored. Performance is reported as accuracy, cross-entropy, and per-writer recall and precision. Every writer has 250 test images, so accuracy equals the average per-writer recall (balanced accuracy). The 50 replicates of a digit by one writer in one session are near-duplicates, so the effective sample is about 100 writer-digit cells per session and not 5,000 images, and intervals were obtained by resampling writers.
+The final model was fixed before the test session (session 5) was scored. Performance is reported as accuracy, cross-entropy, and per-writer recall and precision. Every writer has 250 test images, so accuracy equals the average per-writer recall (balanced accuracy). The 50 replicates of a digit by one writer in one session are near-duplicates, so the effective sample is about 100 writer-digit cells per session and not 5,000 images, and intervals were obtained by resampling writers.
 
 ### Results
 
-**Tuning.** The first stage favoured tanh with a learning rate of 0.0001 and dropout 0.7 (validation accuracy 59.1% and cross-entropy 1.89, averaged over three seeds). A smaller learning rate (0.00003) gave a lower cross-entropy (about 1.5) but a lower accuracy (about 56%), and dropout rates between 0.5 and 0.7 could not be told apart. In the second stage, the default layout (16 filters of 3 $\times$ 3, 2 $\times$ 2 pooling) had the highest validation accuracy among the architectures inside the cross-entropy tolerance, so it was kept. Validation cross-entropy was lowest after 4 epochs and rose afterwards, while training accuracy approached 100%; 10 epochs was chosen as the point of highest accuracy among the epochs inside the tolerance. The penalty has a U-shaped effect (@tbl-cnn-nu): cross-entropy fell from 1.89 without a penalty to 1.39 at $\nu = 0.03$ and rose again, and at $\nu = 0.3$ the model could not learn. The value used was $\nu = 0.1$. @tbl-cnn-settings lists the final settings.
+**Tuning:** The first stage favoured tanh with a learning rate of 0.0001 and dropout 0.7 (validation accuracy 59.1% and cross-entropy 1.89, averaged over three seeds). A smaller learning rate (0.00003) gave a lower cross-entropy (about 1.5) but a lower accuracy (about 56%), and dropout rates between 0.5 and 0.7 could not be told apart. In the second stage, the default layout (16 filters of 3 $\times$ 3, 2 $\times$ 2 pooling) had the highest validation accuracy among the architectures inside the cross-entropy tolerance, so it was kept. Validation cross-entropy was lowest after 4 epochs and rose afterwards, while training accuracy approached 100%; 10 epochs was chosen as the point of highest accuracy among the epochs inside the tolerance. The penalty has a U-shaped effect (@tbl-cnn-nu): cross-entropy fell from 1.89 without a penalty to 1.39 at $\nu = 0.03$ and rose again, and at $\nu = 0.3$ the model could not learn. The value used was $\nu = 0.1$. @tbl-cnn-settings lists the final settings.
 
 ```{r}
 #| label: tbl-cnn-settings
@@ -337,7 +336,7 @@ kable(nu_tab, booktabs = TRUE, row.names = FALSE,
 
 On the validation session, the default CNN reached a training accuracy of 99.4% and a validation accuracy of 44.8%, a gap of 55 points: it memorises the training sessions. The tuned CNN reached 86.0% and 60.4%, a gap of 26 points. The two models have the same architecture, so the improvement comes from the four changed settings together (activation, dropout, learning rate and penalty). The validation score of the tuned CNN is optimistic, because its settings were selected on this session.
 
-**Test performance.** On the held-out session, the tuned CNN identified the writer for 55.0% of the images, against 5% expected by chance with 20 writers (@tbl-cnn-test). A 95% interval obtained by resampling writers is 42.7% to 67.1%. The accuracy is lower than the validation accuracy (60.4%), as expected when settings are chosen on the validation session.
+**Test performance:** On the held-out session, the tuned CNN identified the writer for 55.0% of the images, against 5% expected by chance with 20 writers (@tbl-cnn-test). A 95% interval obtained by resampling writers is 42.7% to 67.1%. The accuracy is lower than the validation accuracy (60.4%), as expected when settings are chosen on the validation session.
 
 ```{r}
 #| label: tbl-cnn-test
@@ -354,7 +353,7 @@ kable(test_tab, booktabs = TRUE, align = "lrr")
 
 Because all models are scored on the same 20 writers, they were compared in pairs, resampling writers. The tuned CNN scored 11.4 percentage points higher than the linear model (95% interval 4.1 to 18.9), so that difference is unlikely to be due to which writers were sampled. Its 5.7-point lead over the default CNN (interval $-1.9$ to 13.6) cannot be distinguished from zero, and the nearest-centroid classifier was not tested formally. The clearest difference between the two CNNs is in the probabilities: the tuned model's cross-entropy of 1.39 is below the 3.00 of guessing evenly, whereas the default CNN's 5.87 is about twice that value. The default model is overconfident: it is wrong about half the time, but gives high probability to its wrong answers. The linear baseline was only lightly tuned, so part of its deficit reflects tuning effort and not the convolutional structure.
 
-**Writers and errors.** Accuracy varied enormously between writers (@fig-cnn-writer). Writers 7 and 18 were identified in every image, and writers 6, 8, 15 and 17 in 76% to 85% of their images, whereas writer 5 was never identified, writer 13 in only 1 of 250 images, and writers 10, 16 and 20 in fewer than 35%. The average per-writer precision was 54.3%. Writers 5 and 13 were also the hardest for a model with different settings, which suggests that the difficulty comes from the data and not from one model.
+**Writers and errors:** Accuracy varied enormously between writers (@fig-cnn-writer). Writers 7 and 18 were identified in every image, and writers 6, 8, 15 and 17 in 76% to 85% of their images, whereas writer 5 was never identified, writer 13 in only 1 of 250 images, and writers 10, 16 and 20 in fewer than 35%. The average per-writer precision was 54.3%. Writers 5 and 13 were also the hardest for a model with different settings, which suggests that the difficulty comes from the data and not from one model.
 
 ```{r}
 #| label: fig-cnn-writer
@@ -380,9 +379,9 @@ The errors are concentrated in particular pairs of writers, not spread evenly. S
 
 These results agree with the exploratory analysis. Writers differ in measurable ways, but a writer's average digit in another session was only about 20% closer to their own earlier sessions than to another writer's handwriting (distance ratio about 0.8), so a new session often resembles another writer's training data.
 
-**Comparison with the Siamese network.** The two networks answer different questions: the CNN identifies the writer of one image among 20, and the Siamese network decides whether two images have the same writer. Their metrics (accuracy over 20 classes, and balanced accuracy over pairs) are therefore not directly comparable. The evaluations also differ: every CNN test image comes from a session that was never used in training, whereas the Siamese cross-session test pairs reuse images from the training sessions, as noted in that section.
+**Comparison with the Siamese network:** The two networks answer different questions: the CNN identifies the writer of one image among 20, and the Siamese network decides whether two images have the same writer. Their metrics (accuracy over 20 classes, and balanced accuracy over pairs) are therefore not directly comparable. The evaluations also differ: every CNN test image comes from a session that was never used in training, whereas the Siamese cross-session test pairs reuse images from the training sessions, as noted in that section.
 
-**Limitations.** Validation and test scores rest on about 100 writer-digit cells each, so differences of a few points between models are within noise. The settings were chosen in stages, which ignores interactions between them, and every stage is another look at the validation session, so the validation scores of the tuned CNN are optimistic. The comparisons between models rest on one training run per model: the intervals reflect which writers were sampled, not variation between random starts. The baselines received less tuning than the CNN. Finally, a test result from an earlier configuration was seen before the tuning was redone, and no setting was chosen using the test session.
+**Limitations:** Validation and test scores rest on about 100 writer-digit cells each, so differences of a few points between models are within noise. The settings were chosen in stages, which ignores interactions between them, and every stage is another look at the validation session, so the validation scores of the tuned CNN are optimistic. The comparisons between models rest on one training run per model: the intervals reflect which writers were sampled, not variation between random starts. The baselines received less tuning than the CNN. Finally, a test result from an earlier configuration was seen before the tuning was redone, and no setting was chosen using the test session.
 
 \newpage
 
@@ -390,21 +389,15 @@ These results agree with the exploratory analysis. Writers differ in measurable 
 
 A siamese neural network was implemented, with the aim of predicting if 2 images were written by the same person. The data set was initially split into its training (sessions 1 to 3), validation (session 4) and test (session 5) subsets. Within the training subset and validation subset, images were arranged into pairs. Each image could be part of more than 1 pair. Pairs had a 50% chance of both images having the same writer. To remove unnecessary complexity, all pairs were ensured to have 2 images portraying the same digit.
 
-Contrastive loss was implemented, and is calculated as $$L = yD^2 + (1-y)\text{max}(0, m - D)^2,$$ where y = 1 if the images are written by the same writer, D is the euclidean distance between the 2 image embeddings, and m = 1 is the margin. Balanced accuracy is calculated as the average of the true positive rate (sensitivity) and the true negative rate (specificity):
-$$\text{Balanced Accuracy}
+Contrastive loss was implemented, and is calculated as $$L = yD^2 + (1-y)\text{max}(0, m - D)^2,$$ where y = 1 if the images are written by the same writer, D is the euclidean distance between the 2 image embeddings, and m = 1 is the margin. Balanced accuracy is calculated as the average of the true positive rate (sensitivity) and the true negative rate (specificity): $$\text{Balanced Accuracy}
 =
-\frac{\text{Sensitivity}+\text{Specificity}}{2}$$
-where
-$$\text{Sensitivity}
+\frac{\text{Sensitivity}+\text{Specificity}}{2}$$ where $$\text{Sensitivity}
 =
 \frac{\text{True Positives}}
-{\text{True Positives}+\text{False Negatives}}$$
-and
-$$\text{Specificity}
+{\text{True Positives}+\text{False Negatives}}$$ and $$\text{Specificity}
 =
 \frac{\text{True Negatives}}
-{\text{True Negatives}+\text{False Positives}}.$$
-The distance threshold was chosen by maximizing balanced accuracy for that individual model. All the calculated distances were candidates for the threshold. Furthermore, hyperparameters were tuned and chosen according to which values and combinations thereof that produced the model with the highest balanced accuracy. For each combination of parameters considered, the model fitting process was repeated 3 times, and the average metrics were reported.
+{\text{True Negatives}+\text{False Positives}}.$$ The distance threshold was chosen by maximizing balanced accuracy for that individual model. All the calculated distances were candidates for the threshold. Furthermore, hyperparameters were tuned and chosen according to which values and combinations thereof that produced the model with the highest balanced accuracy. For each combination of parameters considered, the model fitting process was repeated 3 times, and the average metrics were reported.
 
 It was found that a model with 2 hidden layers (mean balanced accuracy = 0.966 and mean validation loss = 0.105) performed considerably better than a model with 1 (balanced accuracy = 0.773 and validation loss = 0.214). Thereafter, the activation functions on the hidden layers were optimized. The ReLU and Tanh functions were considered. The 4 different combinations of these functions across the 2 layer network were evaluated. @tbl-act-fn_tune demonstrates that the best performing activation function combination was relu-tanh according to balanced accuracy (0.982). Though this does not correspond with the activation function combination chosen by validation loss (tanh-relu, 0.103), the balanced accuracy metric is prioritized throughout tuning. This is because balanced accuracy provides a direct measure of classification performance by averaging sensitivity and specificity. This ensures that performance on both classes (similar and dissimilar image pairs) is considered equally, regardless of class prevalence. In contrast, validation contrastive loss measures how effectively the network learns the distance relationships between image pairs, but does not directly indicate classification accuracy. Therefore, balanced accuracy was considered a more appropriate criterion for tuning the model.
 
@@ -520,7 +513,7 @@ The optimal distance threshold was found to be 0.247, meaning that 2 images with
 
 ::: {#tbl-results-session}
 | session_type      |    n | accuracy | sensitivity | specificity | balanced_accuracy |
-|:-----------|-----------:|-----------:|-----------:|-----------:|-----------:|
+|:------------------|-----:|---------:|------------:|------------:|------------------:|
 | Same session      | 2000 |    0.947 |       0.899 |       0.995 |             0.947 |
 | Different session | 2000 |    0.554 |       0.112 |       0.997 |             0.554 |
 
@@ -595,6 +588,14 @@ The tuning models achieved considerably higher performance, particularly in term
 
 With regards to model performance, since the same-writer and different-writer classes are balanced, a balanced accuracy of 0.50 provides a useful baseline for random guessing. The high validation performance indicates that the model can distinguish between the two classes under the validation conditions. However, the lower cross-session performance suggests that the model struggles to identify the same writer when handwriting samples originate from different sessions. Consequently, the validation results may overstate the model's practical reliability across sessions. Furthermore, repeatedly selecting hyperparameters using the same validation set may lead to overly optimistic estimates of validation performance.
 
+The CNN shows that a writer can be identified from a single digit well above chance, but not reliably. On the held-out session the tuned network named the correct writer for 55.0% of the images, against 5% expected by guessing, and it scored 11.4 percentage points higher than the linear baseline, a difference that the choice of writers is unlikely to explain. It was not clearly better than the default CNN in accuracy (a lead of 5.7 points, interval $-1.9$ to 13.6), but its probabilities were far better calibrated: a cross-entropy of 1.39 against 5.87. The interval for the tuned model (42.7% to 67.1%) is wide, because each session holds only about 100 independent writer-digit cells.
+
+Accuracy varied enormously between writers, from none of writer 5's images (0 of 250) to all of the images of writers 7 and 18. The errors were not scattered: whole writer-digit cells of near-identical images were given to a single wrong writer, for example 71% of writer 10's images to writer 2, and a few writers absorbed many of the others' images (writer 2 received 459 predictions, of which 31% were correct). This agrees with the exploratory analysis, where a writer's average digit in another session was only about 20% closer to their own earlier sessions than to another writer's (distance ratio about 0.8). A new session can therefore resemble someone else's training data more than the writer's own. Tuning narrowed the gap between training and validation accuracy from 55 to 26 points, but a large gap remains.
+
+The settings were chosen on one validation session, and the tuned model scored higher there (60.4%) than on the test session, which is the usual optimism after selecting settings on the same data, so 55.0% is the figure to quote. The comparisons between models rest on one training run each, the data are simulated, and the 20 writers are a closed set that the model has already seen. Combining several images before naming a writer, or training on more sessions, might raise accuracy, but neither was tested here.
+
+The Siamese network met the same obstacle in another form: it recognised pairs from the same session well, but was much less successful at recognising the same writer across sessions. Both models therefore point to the same conclusion: variation within a writer from one session to the next is the main obstacle to recognising handwriting in this data set. Because the tasks and metrics differ, the results do not show that either model is better than the other.
+
 \newpage
 
 # Appendix
@@ -615,17 +616,16 @@ The higher training loss visible in @fig-siamese-1-layer-epochs may partly be ex
 
 # References
 
-- R Core Team (2026). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing, Vienna, Austria. doi:10.32614/R.manuals <https://doi.org/10.32614/R.manuals>. <https://www.R-project.org/>.
+-   R Core Team (2026). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing, Vienna, Austria. doi:10.32614/R.manuals <https://doi.org/10.32614/R.manuals>. <https://www.R-project.org/>.
 
-- Kalinowski T, Allaire J, Chollet F (2026). *keras3: R Interface to 'Keras'*. doi:10.32614/CRAN.package.keras3 <https://doi.org/10.32614/CRAN.package.keras3>. R package version 1.5.1, <https://CRAN.R-project.org/package=keras3>.
+-   Kalinowski T, Allaire J, Chollet F (2026). *keras3: R Interface to 'Keras'*. doi:10.32614/CRAN.package.keras3 <https://doi.org/10.32614/CRAN.package.keras3>. R package version 1.5.1, <https://CRAN.R-project.org/package=keras3>.
 
-- Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to the tidyverse.” *Journal of Open Source Software*, *4*(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>.
+-   Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to the tidyverse.” *Journal of Open Source Software*, *4*(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>.
 
-- Barthelme S (2025). *imager: Image Processing Library Based on 'CImg'*. doi:10.32614/CRAN.package.imager <https://doi.org/10.32614/CRAN.package.imager>. R package version 1.0.8, <https://CRAN.R-project.org/package=imager>.
+-   Barthelme S (2025). *imager: Image Processing Library Based on 'CImg'*. doi:10.32614/CRAN.package.imager <https://doi.org/10.32614/CRAN.package.imager>. R package version 1.0.8, <https://CRAN.R-project.org/package=imager>.
 
-- Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek, Jean-Charles Sanchez and Markus Müller (2011). pROC: an open-source package for R and S+ to analyze and compare ROC curves. BMC Bioinformatics, 12, p. 77. DOI: 10.1186/1471-2105-12-77 <http://www.biomedcentral.com/1471-2105/12/77/>
+-   Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek, Jean-Charles Sanchez and Markus Müller (2011). pROC: an open-source package for R and S+ to analyze and compare ROC curves. BMC Bioinformatics, 12, p. 77. DOI: 10.1186/1471-2105-12-77 <http://www.biomedcentral.com/1471-2105/12/77/>
 
-- Kalinowski T, Ushey K, Allaire J, Tang Y (2026). *reticulate: Interface to 'Python'*. doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.
+-   Kalinowski T, Ushey K, Allaire J, Tang Y (2026). *reticulate: Interface to 'Python'*. doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.
 
-- OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026).
- 
+-   OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026).
