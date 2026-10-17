@@ -1,8 +1,41 @@
 ---
-title: "STA5073Z Neural Networks Assignment"
+title: ""
 format: pdf
 editor: visual
 ---
+
+
+
+
+\begin{titlepage}
+\centering
+
+\vspace*{3cm}
+
+{\Large University of Cape Town\par}
+
+\vspace{2cm}
+
+{\huge\bfseries STA5073Z Data Science for Industry\par}
+
+\vspace{1.5cm}
+
+{\Large Assignment 2: Neural Networks\par}
+
+\vspace{1cm}
+
+{\large Mishka Ramraj, Caren Pahla, Una Fundzo\par}
+
+\vspace{0.5cm}
+
+{\large October 2026\par}
+
+\end{titlepage}
+
+\newpage
+
+
+
 
 # Introduction 
 
@@ -268,6 +301,7 @@ There some limitations with the data and this may cause potential problems when 
 Another potential issue with the data is the rigid structure and balance of the data. The data set has a well balanced structure which lacks the organic class imbalances and variable sample sizes typically characteristics of real world data collection. The variation in the independent sessions are artificially bounded into 5 discrete blocks rather than capturing a continuous, organic evolution pf a persons handwriting over time. Lastly, the resolution in the pixels is relatively low thus fine structural details, subtle pen-pressure changes, and intricate loop formations may be lost or pixeleted.
 
 These problems have the potential to cause over fitting in the models. The way the data is structured has the potential to over inflate the accuracy during training and validation. Since the images are low resolution, the models can easily over fit to pixel-level noise or minor rendering artifacts introduced by the simulation engine, treating random pixel patterns as meaningful writer features rather than focusing on the actual stroke dynamic and shapes.
+
 
 # Methods and Results
 
