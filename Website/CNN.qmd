@@ -10,9 +10,8 @@ editor: visual
 library(knitr)
 ```
 
-## CNN Analysis
 
-## Convolutional Neural Network Method
+# Methods
 
 A convolutional neural network (CNN) was built to answer the first research question: can a writer be identified from a single handwritten digit? Each image is assigned to one of the 20 writers, whatever digit it shows, so the digit is neither an input nor a label. The network outputs one probability per writer (a softmax layer) and the predicted writer is the one with the highest probability. Pixel values were divided by 255, and the training, validation and test sessions are those described under Data Splitting. Training used categorical cross-entropy loss, the Adam optimiser and batches of 64 images.
 
@@ -31,7 +30,7 @@ Cross-entropy was computed from the predicted probabilities without the penalty 
 
 **Evaluation.** The final model was fixed before the test session (session 5) was scored. Performance is reported as accuracy, cross-entropy, and per-writer recall and precision. Every writer has 250 test images, so accuracy equals the average per-writer recall (balanced accuracy). The 50 replicates of a digit by one writer in one session are near-duplicates, so the effective sample is about 100 writer-digit cells per session and not 5,000 images, and intervals were obtained by resampling writers.
 
-### Results
+# Results
 
 **Tuning.** The first stage favoured tanh with a learning rate of 0.0001 and dropout 0.7 (validation accuracy 59.1% and cross-entropy 1.89, averaged over three seeds). A smaller learning rate (0.00003) gave a lower cross-entropy (about 1.5) but a lower accuracy (about 56%), and dropout rates between 0.5 and 0.7 could not be told apart. In the second stage, the default layout (16 filters of 3 $\times$ 3, 2 $\times$ 2 pooling) had the highest validation accuracy among the architectures inside the cross-entropy tolerance, so it was kept. Validation cross-entropy was lowest after 4 epochs and rose afterwards, while training accuracy approached 100%; 10 epochs was chosen as the point of highest accuracy among the epochs inside the tolerance. The penalty has a U-shaped effect (@tbl-cnn-nu): cross-entropy fell from 1.89 without a penalty to 1.39 at $\nu = 0.03$ and rose again, and at $\nu = 0.3$ the model could not learn. The value used was $\nu = 0.1$. @tbl-cnn-settings lists the final settings.
 
@@ -107,7 +106,5 @@ legend("top", c("Recall (accuracy)", "Precision"), fill = c("grey30", "grey75"),
 The errors are concentrated in particular pairs of writers, not spread evenly. Seventy-one per cent of writer 10's images (177) were labelled as writer 2, 60% of writer 5's (150) as writer 13, and 40% of writer 16's (100) as writer 1. Some confusions run in both directions (writers 1 and 16, 14 and 15, and 6 and 17), which may mean that the two writers' handwriting is similar, although this was not checked. The model also over-assigns a few writers: writer 2 received 459 predictions, of which only 144 (31%) were correct, and writer 7 received 398 (63% correct), against a fair share of 250. Many counts are close to 50, 100 or 150, the size of one or more writer-digit cells of near-identical images, so the model tends to assign a whole cell to a single writer. Accuracy was similar for all five digits (50% to 59%), with no digit clearly easier.
 
 These results agree with the exploratory analysis. Writers differ in measurable ways, but a writer's average digit in another session was only about 20% closer to their own earlier sessions than to another writer's handwriting (distance ratio about 0.8), so a new session often resembles another writer's training data.
-
-**Comparison with the Siamese network.** The two networks answer different questions: the CNN identifies the writer of one image among 20, and the Siamese network decides whether two images have the same writer. Their metrics (accuracy over 20 classes, and balanced accuracy over pairs) are therefore not directly comparable. The evaluations also differ: every CNN test image comes from a session that was never used in training, whereas the Siamese cross-session test pairs reuse images from the training sessions, as noted in that section.
 
 **Limitations.** Validation and test scores rest on about 100 writer-digit cells each, so differences of a few points between models are within noise. The settings were chosen in stages, which ignores interactions between them, and every stage is another look at the validation session, so the validation scores of the tuned CNN are optimistic. The comparisons between models rest on one training run per model: the intervals reflect which writers were sampled, not variation between random starts. The baselines received less tuning than the CNN. Finally, a test result from an earlier configuration was seen before the tuning was redone, and no setting was chosen using the test session.
