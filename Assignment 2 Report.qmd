@@ -4,7 +4,7 @@ format: pdf
 editor: visual
 ---
 
-# Introduction
+# Introduction 
 
 This study utilizes a simulated data set of 25,000 handwritten digits collected from 20 participants. Each individual provided 1,250 samples split across 5 sessions, with 50 samples recorded per session. Handwritten samples naturally exhibit intra-writer variability due to inherent personal differences and changing environmental conditions, such as time constraints during exams compared to relaxed note-taking. Nevertheless, underlying individual traits remain consistent, enabling writer identification.
 
@@ -48,7 +48,7 @@ display_image <- function(img, title = "") {
 
 ::: {#tbl-dataset_summary}
 | Metadata Attribute | Value / Description |
-|:---|:---|
+|:-----------------------------------|:-----------------------------------|
 | Person ID Range (`person_id`) | 1 - 20 (20 unique subjects) |
 | Session ID Range (`session`) | 1 - 5 (5 distinct sessions) |
 | Digit Classes (`digit`) | 0 - 4 (5 classes) |
@@ -511,7 +511,7 @@ The optimal distance threshold was found to be 0.247, meaning that 2 images with
 
 ::: {#tbl-results-session}
 | session_type      |    n | accuracy | sensitivity | specificity | balanced_accuracy |
-|:------------------|-----:|---------:|------------:|------------:|------------------:|
+|:-----------|-----------:|-----------:|-----------:|-----------:|-----------:|
 | Same session      | 2000 |    0.947 |       0.899 |       0.995 |             0.947 |
 | Different session | 2000 |    0.554 |       0.112 |       0.997 |             0.554 |
 
