@@ -10,7 +10,7 @@ editor: visual
 
 # Image Classification using Neural Networks
 
-### Assignment 2 Website
+STA5073Z Assignment 2 website
 
 :::: authors-container
 ::: author-card
