@@ -1,0 +1,29 @@
+ASSIGNMENT 2: TEXT FILE
+
+WORK DELEGATION:
+(a)
+This assignment was done by Mishka Ramraj, Una Fundzo, Caren Pahla. 
+We delegated the work as follows: 
+Everyone did their own data analysis. 
+Caren mainly worked on the EDA and edited the final changes in the EDA. 
+Una worked on the CNN. 
+We all participated in the frequent discussions surrounding how to tune the parameters of the model and address the issue of the overfitting in the model. 
+Mishka worked on the Siamese network. 
+We all contributed to the assignment report. Each person edited their own section and added the corresponding code. 
+Caren created the website template and each member added their individual sections to the website.
+Overall, there were frequent discussions about the assignment brief and any problems or challenges that arose as we worked on the assignment together. 
+
+
+(b)
+LINK TO WEBSITE ON GITHUB:
+
+(c)
+GITHUB REPOSITORY:  
+https://github.com/Mish827/DS4I-Assignment2
+
+
+(d)
+FURTHER POINTS TO NOTE:
+It is acknowledged that GitHub was not used in the conventional manner, as team members initially worked in separate files due to their differing schedules. Although questions and challenges were typically addressed collaboratively and sequentially, coordinating work in a single shared file from the outset was not always practical. Therefore, individual files were used during the initial stages of the assignment. Once substantial progress had been made on each major section, the work was consolidated into a single file to facilitate integration and ensure consistency across the final submission. 
+
+Furthermore, although the website and pdf contain the same information, they may differ slightly in terms of arrangement and formatting. 
