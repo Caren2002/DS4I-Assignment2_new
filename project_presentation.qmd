@@ -301,3 +301,14 @@ writer_results2 |>
   )
 ```
 
+
+### Example: Predicted same writer
+
+![](siamese_error3.png){#fig-siamese-error1 width="100%"}  
+
+
+
+### Example: Predicted different writer
+
+![](siamese_error8.png){#fig-siamese-error2 width="100%"}
+
