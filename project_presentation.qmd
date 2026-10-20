@@ -4,6 +4,16 @@ author: "Mishka Ramraj"
 format: beamer
 ---
 
+```{r}
+#| message: false
+#| warning: false
+#| include: false
+library(dplyr)
+library(knitr)
+library(kableExtra)
+```
+
+
 # Siamese Neural Network
 ## Methods
 
@@ -52,19 +62,61 @@ $$L = yD^2 + (1-y)max(0, m-D)^2$$
 
 ### Tuning hidden layers
 
-| Number of Hidden Layers | Validation Loss | Balanced Accuracy |
-|------------------------:|---------------------:|-----------------------:|
-| 1                       |                0.214 |                  0.773 |
-| 2                       |                0.105 |                  0.966 |
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+hidden_layer_tune <- data.frame(
+  `Number of Hidden Layers` = c(1, 2),
+  `Validation Loss` = c(0.214, 0.105),
+  `Balanced Accuracy` = c(0.773, 0.966),
+  check.names = FALSE
+)
+
+hidden_layer_tune |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("r", "r", "r")
+  )
+```
+
+
 
 ### Tuning activation functions
 
-| Activation Functions | Validation Loss | Balanced Accuracy |
-|:---------------------|----------------:|------------------:|
-| relu_relu            |           0.105 |             0.966 |
-| tanh_relu            |           0.103 |             0.971 |
-| relu_tanh            |           0.108 |             0.982 |
-| tanh_tanh            |           0.113 |             0.980 |
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+# Create the data frame
+act_fn_tune <- data.frame(
+  `Activation Functions` = c(
+    "relu_relu",
+    "tanh_relu",
+    "relu_tanh",
+    "tanh_tanh"
+  ),
+  `Validation Loss` = c(0.105, 0.103, 0.108, 0.113),
+  `Balanced Accuracy` = c(0.966, 0.971, 0.982, 0.980),
+  check.names = FALSE
+)
+
+# Display the table and highlight relu_tanh
+act_fn_tune |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("l", "r", "r")
+  ) |>
+  row_spec(
+    which(act_fn_tune$`Activation Functions` == "relu_tanh"),
+    background = "yellow!45"
+  )
+```
+
+
 
 
 ### Tuning filter numbers and size 
@@ -73,26 +125,43 @@ $$L = yD^2 + (1-y)max(0, m-D)^2$$
 
 
 
+
 ### Tuning filter numbers and size 
 
-| Number of Filters | Kernel Size | Validation Loss | Balanced Accuracy |
-|------------------:|------------:|----------------:|------------------:|
-| 16                | 3           |           0.108 |             0.982 |
-| 32                | 3           |           0.109 |             0.971 |
-| 64                | 3           |           0.115 |             0.952 |
-| 16                | 5           |           0.071 |             0.991 |
-| 32                | 5           |           0.072 |             0.989 |
-| 64                | 5           |           0.073 |             0.987 |
-| 16                | 7           |           0.065 |             0.990 |
-| 32                | 7           |           0.066 |             0.989 |
-| 64                | 7           |           0.068 |             0.987 |
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+# Create the data frame
+filter_kernel_tune <- data.frame(
+  `Number of Filters` = c(16, 32, 64, 16, 32, 64, 16, 32, 64),
+  `Kernel Size` = c(3, 3, 3, 5, 5, 5, 7, 7, 7),
+  `Validation Loss` = c(0.108, 0.109, 0.115, 0.071, 0.072, 0.073, 0.065, 0.066, 0.068),
+  `Balanced Accuracy` = c(0.982, 0.971, 0.952, 0.991, 0.989, 0.987, 0.990, 0.989, 0.987),
+  check.names = FALSE
+)
+
+# Create the table and highlight rows
+filter_kernel_tune |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("r", "r", "r", "r")
+  ) |>
+  row_spec(4, background = "yellow!45") |>
+  row_spec(7, background = "yellow!25")
+```
+
 
 
 ### Final model 
 
 * Inputs
+* Outputs - distance threshold
 * Overall performance
-* Session results
+
+
+### Session results
 
 | Session Type      |    n | Accuracy | Sensitivity | Specificity | Balanced Accuracy |
 |:------------------|-----:|---------:|------------:|------------:|------------------:|
@@ -102,53 +171,133 @@ $$L = yD^2 + (1-y)max(0, m-D)^2$$
 
 ### Session x writer results
 
-| Pair Type                          |    n | Correct | Accuracy |
-|:-----------------------------------|-----:|--------:|---------:|
-| Same writer, same session          | 1000 |     899 |    0.899 |
-| Same writer, different session     | 1000 |     112 |    0.112 |
-| Different writer, same session     | 1000 |     995 |    0.995 |
-| Different writer, different session| 1000 |     997 |    0.997 |
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+pair_type_results <- data.frame(
+  `Pair Type` = c(
+    "Same writer, same session",
+    "Same writer, different session",
+    "Different writer, same session",
+    "Different writer, different session"
+  ),
+  n = c(1000, 1000, 1000, 1000),
+  Correct = c(899, 112, 995, 997),
+  Accuracy = c(0.899, 0.112, 0.995, 0.997),
+  check.names = FALSE
+)
+
+pair_type_results |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("l", "r", "r", "r")
+  ) |>
+  row_spec(2, background = "red!15")
+
+```
+
+
 
 
 ### Digit results
 
-| Digit | Accuracy | Sensitivity | Specificity | Balanced Accuracy |
-|------:|---------:|------------:|------------:|-------------------:|
-| 0     | 0.742    | 0.501       | 0.995       | 0.748              |
-| 1     | 0.765    | 0.532       | 0.995       | 0.763              |
-| 2     | 0.763    | 0.513       | 0.998       | 0.755              |
-| 3     | 0.742    | 0.476       | 1.000       | 0.738              |
-| 4     | 0.743    | 0.510       | 0.992       | 0.751              |
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+digit_results <- data.frame(
+  Digit = 0:4,
+  Accuracy = c(0.742, 0.765, 0.763, 0.742, 0.743),
+  Sensitivity = c(0.501, 0.532, 0.513, 0.476, 0.510),
+  Specificity = c(0.995, 0.995, 0.998, 1.000, 0.992),
+  `Balanced Accuracy` = c(0.748, 0.763, 0.755, 0.738, 0.751),
+  check.names = FALSE
+)
+
+digit_results |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("r", "r", "r", "r", "r")
+  ) |>
+  row_spec(
+    which(digit_results$Digit == 3),
+    background = "red!15"
+  )
+```
+
+
 
 ### Writer results (1 - 10)
 
-| Writer |   n | Accuracy | Sensitivity | Specificity | Balanced Accuracy |
-|-------:|----:|---------:|------------:|------------:|------------------:|
-| 1      | 212 |    0.769 |       0.538 |       0.991 |             0.765 |
-| 2      | 177 |    0.718 |       0.432 |       1.000 |             0.716 |
-| 3      | 218 |    0.752 |       0.481 |       1.000 |             0.740 |
-| 4      | 216 |    0.750 |       0.518 |       1.000 |             0.759 |
-| 5      | 168 |    0.732 |       0.476 |       0.988 |             0.732 |
-| 6      | 210 |    0.710 |       0.444 |       0.990 |             0.717 |
-| 7      | 182 |    0.791 |       0.587 |       1.000 |             0.793 |
-| 8      | 216 |    0.718 |       0.429 |       0.991 |             0.710 |
-| 9      | 187 |    0.775 |       0.523 |       1.000 |             0.761 |
-| 10     | 198 |    0.783 |       0.557 |       1.000 |             0.778 |
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+writer_results1 <- data.frame(
+  Writer = 1:10,
+  n = c(212, 177, 218, 216, 168, 210, 182, 216, 187, 198),
+  Accuracy = c(0.769, 0.718, 0.752, 0.750, 0.732,
+               0.710, 0.791, 0.718, 0.775, 0.783),
+  Sensitivity = c(0.538, 0.432, 0.481, 0.518, 0.476,
+                  0.444, 0.587, 0.429, 0.523, 0.557),
+  Specificity = c(0.991, 1.000, 1.000, 1.000, 0.988,
+                  0.990, 1.000, 0.991, 1.000, 1.000),
+  `Balanced Accuracy` = c(0.765, 0.716, 0.740, 0.759, 0.732,
+                          0.717, 0.793, 0.710, 0.761, 0.778),
+  check.names = FALSE
+)
+
+writer_results1 |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("r", "r", "r", "r", "r", "r")
+  ) |>
+  row_spec(
+    which(writer_results1$Writer == 7),
+    background = "green!15"
+  )
+```
 
 
 
 ### Writer results (11 - 20)
 
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+writer_results2 <- data.frame(
+  Writer = 11:20,
+  n = c(204, 197, 232, 249, 186, 170, 161, 218, 212, 187),
+  Accuracy = c(0.750, 0.751, 0.690, 0.711, 0.747,
+               0.782, 0.758, 0.803, 0.778, 0.770),
+  Sensitivity = c(0.495, 0.520, 0.403, 0.453, 0.484,
+                  0.543, 0.542, 0.613, 0.557, 0.552),
+  Specificity = c(1.000, 1.000, 0.991, 0.983, 1.000,
+                  1.000, 0.987, 1.000, 1.000, 1.000),
+  `Balanced Accuracy` = c(0.748, 0.760, 0.697, 0.718, 0.742,
+                          0.772, 0.765, 0.806, 0.778, 0.776),
+  check.names = FALSE
+)
 
-| Writer |   n | Accuracy | Sensitivity | Specificity | Balanced Accuracy |
-|-------:|----:|---------:|------------:|------------:|------------------:|
-| 11     | 204 |    0.750 |       0.495 |       1.000 |             0.748 |
-| 12     | 197 |    0.751 |       0.520 |       1.000 |             0.760 |
-| 13     | 232 |    0.690 |       0.403 |       0.991 |             0.697 |
-| 14     | 249 |    0.711 |       0.453 |       0.983 |             0.718 |
-| 15     | 186 |    0.747 |       0.484 |       1.000 |             0.742 |
-| 16     | 170 |    0.782 |       0.543 |       1.000 |             0.772 |
-| 17     | 161 |    0.758 |       0.542 |       0.987 |             0.765 |
-| 18     | 218 |    0.803 |       0.613 |       1.000 |             0.806 |
-| 19     | 212 |    0.778 |       0.557 |       1.000 |             0.778 |
-| 20     | 187 |    0.770 |       0.552 |       1.000 |             0.776 |
+writer_results2 |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("r", "r", "r", "r", "r", "r")
+  ) |>
+  row_spec(
+    which(writer_results2$Writer == 18),
+    background = "green!15"
+  ) |> 
+  row_spec(
+    which(writer_results2$Writer == 13),
+    background = "red!15"
+  )
+```
+
