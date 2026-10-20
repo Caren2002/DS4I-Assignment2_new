@@ -189,10 +189,13 @@ filter_kernel_tune |>
 
 ### Session results
 
-| Session Type      |    n | Accuracy | Sensitivity | Specificity | Balanced Accuracy |
-|:------------------|-----:|---------:|------------:|------------:|------------------:|
-| Same      | 2000 |    0.947 |       0.899 |       0.995 |             0.947 |
-| Different | 2000 |    0.554 |       0.112 |       0.997 |             0.554 |
+| Session Type |    n | Sensitivity | Specificity | Balanced Accuracy |
+|:-------------|-----:|------------:|------------:|------------------:|
+| Same         | 2000 |       0.899 |       0.995 |             0.947 |
+| Different    | 2000 |       0.112 |       0.997 |             0.554 |
+
+
+
 
 
 ### Session x writer results
@@ -209,7 +212,6 @@ pair_type_results <- data.frame(
     "Different writer, different session"
   ),
   n = c(1000, 1000, 1000, 1000),
-  Correct = c(899, 112, 995, 997),
   Accuracy = c(0.899, 0.112, 0.995, 0.997),
   check.names = FALSE
 )
@@ -218,7 +220,7 @@ pair_type_results |>
   kable(
     format = "latex",
     booktabs = TRUE,
-    align = c("l", "r", "r", "r")
+    align = c("l", "r", "r")
   ) |>
   row_spec(2, background = "red!15")
 
@@ -236,7 +238,6 @@ pair_type_results |>
 #| warning: false
 digit_results <- data.frame(
   Digit = 0:4,
-  Accuracy = c(0.742, 0.765, 0.763, 0.742, 0.743),
   Sensitivity = c(0.501, 0.532, 0.513, 0.476, 0.510),
   Specificity = c(0.995, 0.995, 0.998, 1.000, 0.992),
   `Balanced Accuracy` = c(0.748, 0.763, 0.755, 0.738, 0.751),
@@ -247,7 +248,7 @@ digit_results |>
   kable(
     format = "latex",
     booktabs = TRUE,
-    align = c("r", "r", "r", "r", "r")
+    align = c("r", "r", "r", "r")
   ) |>
   row_spec(
     which(digit_results$Digit == 3),
@@ -265,9 +266,6 @@ digit_results |>
 #| warning: false
 writer_results1 <- data.frame(
   Writer = 1:10,
-  n = c(212, 177, 218, 216, 168, 210, 182, 216, 187, 198),
-  Accuracy = c(0.769, 0.718, 0.752, 0.750, 0.732,
-               0.710, 0.791, 0.718, 0.775, 0.783),
   Sensitivity = c(0.538, 0.432, 0.481, 0.518, 0.476,
                   0.444, 0.587, 0.429, 0.523, 0.557),
   Specificity = c(0.991, 1.000, 1.000, 1.000, 0.988,
@@ -281,7 +279,7 @@ writer_results1 |>
   kable(
     format = "latex",
     booktabs = TRUE,
-    align = c("r", "r", "r", "r", "r", "r")
+    align = c("r", "r", "r", "r")
   ) |>
   row_spec(
     which(writer_results1$Writer == 7),
@@ -299,9 +297,6 @@ writer_results1 |>
 #| warning: false
 writer_results2 <- data.frame(
   Writer = 11:20,
-  n = c(204, 197, 232, 249, 186, 170, 161, 218, 212, 187),
-  Accuracy = c(0.750, 0.751, 0.690, 0.711, 0.747,
-               0.782, 0.758, 0.803, 0.778, 0.770),
   Sensitivity = c(0.495, 0.520, 0.403, 0.453, 0.484,
                   0.543, 0.542, 0.613, 0.557, 0.552),
   Specificity = c(1.000, 1.000, 0.991, 0.983, 1.000,
@@ -315,7 +310,7 @@ writer_results2 |>
   kable(
     format = "latex",
     booktabs = TRUE,
-    align = c("r", "r", "r", "r", "r", "r")
+    align = c("r", "r", "r", "r")
   ) |>
   row_spec(
     which(writer_results2$Writer == 18),
