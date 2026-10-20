@@ -52,16 +52,25 @@ $$L = yD^2 + (1-y)max(0, m-D)^2$$
 
 ### Tuning hidden layers
 
+| Number of Hidden Layers | Validation Loss | Balanced Accuracy |
+|------------------------:|---------------------:|-----------------------:|
+| 1                       |                0.214 |                  0.773 |
+| 2                       |                0.105 |                  0.966 |
+
 ### Tuning activation functions
 
-| Metric              | relu_relu | tanh_relu | relu_tanh | tanh_tanh |
-|:--------------------|----------:|----------:|----------:|----------:|
-| Balanced accuracy   |     0.966 |     0.971 |     0.982 |     0.980 |
-| Validation loss     |     0.105 |     0.103 |     0.108 |     0.113 |
+| Activation Functions | Validation Loss | Balanced Accuracy |
+|:---------------------|----------------:|------------------:|
+| relu_relu            |           0.105 |             0.966 |
+| tanh_relu            |           0.103 |             0.971 |
+| relu_tanh            |           0.108 |             0.982 |
+| tanh_tanh            |           0.113 |             0.980 |
+
 
 ### Tuning filter numbers and size 
 
- 
+ ![](presentation_siamese_filter_tune.png){#fig-siamese-error2 width="100%"}
+
 
 
 ### Tuning filter numbers and size 
@@ -87,8 +96,8 @@ $$L = yD^2 + (1-y)max(0, m-D)^2$$
 
 | Session Type      |    n | Accuracy | Sensitivity | Specificity | Balanced Accuracy |
 |:------------------|-----:|---------:|------------:|------------:|------------------:|
-| Same session      | 2000 |    0.947 |       0.899 |       0.995 |             0.947 |
-| Different session | 2000 |    0.554 |       0.112 |       0.997 |             0.554 |
+| Same      | 2000 |    0.947 |       0.899 |       0.995 |             0.947 |
+| Different | 2000 |    0.554 |       0.112 |       0.997 |             0.554 |
 
 
 ### Session x writer results
