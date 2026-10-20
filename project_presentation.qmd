@@ -22,7 +22,7 @@ library(kableExtra)
 * Input: 2 or 3 images
 * Uses a CNN
 * Output: distance between embeddings of images
-* Distance infers similarity
+* Distance infers dissimilarity
 
 * Contrastive loss:
 
