@@ -4,9 +4,6 @@ format: pdf
 editor: visual
 ---
 
-
-
-
 \begin{titlepage}
 \centering
 
@@ -34,10 +31,7 @@ editor: visual
 
 \newpage
 
-
-
-
-# Introduction 
+# Introduction
 
 This study utilizes a simulated data set of 25,000 handwritten digits collected from 20 participants. Each individual provided 1,250 samples split across 5 sessions, with 50 samples recorded per session. Handwritten samples naturally exhibit intra-writer variability due to inherent personal differences and changing environmental conditions, such as time constraints during exams compared to relaxed note-taking. Nevertheless, underlying individual traits remain consistent, enabling writer identification.
 
@@ -110,19 +104,19 @@ Table. Percentage of Variance Decomposition for Features
 
 To evaluate the stability and discriminative power of spatial feature measurements across handwritten digit samples, a variance decomposition analysis was conducted. The analysis decomposes total variance across four spatial metrics into five distinct components:
 
--   **Feature Metrics:** Digit height ($h$), digit width ($w$), horizontal center of mass ($cx$), and vertical center of mass ($cy$).
+- **Feature Metrics:** Digit height ($h$), digit width ($w$), horizontal center of mass ($cx$), and vertical center of mass ($cy$).
 
--   **Variance Components:** Digit identity (**Digit**), writer identity (**Person ID**), baseline session main effect (**Session**), writer-by-session interaction (**Person ID : Session**), and random residual variation across replicates (**Residuals**).
+- **Variance Components:** Digit identity (**Digit**), writer identity (**Person ID**), baseline session main effect (**Session**), writer-by-session interaction (**Person ID : Session**), and random residual variation across replicates (**Residuals**).
 
 #### Feature Interpretation
 
--   **Digit Height (**$h$): Writer identity (**Person ID**) accounts for the dominant share of variance at **62.9%**, whereas the interaction effect (**Person ID : Session**) accounts for only **2.9%**. This demonstrates that character height serves as a highly stable, writer-specific trait that remains robust across distinct recording sessions.
+- **Digit Height (**$h$): Writer identity (**Person ID**) accounts for the dominant share of variance at **62.9%**, whereas the interaction effect (**Person ID : Session**) accounts for only **2.9%**. This demonstrates that character height serves as a highly stable, writer-specific trait that remains robust across distinct recording sessions.
 
--   **Digit Width (**$w$): Total variance is primarily partitioned between digit identity (**43.5%**) and writer identity (**40.5%**). Naturally, character width varies intrinsically across different digits (e.g., a digit '1' versus a digit '0'); nevertheless, substantial inter-writer variance persists with minimal session-induced fluctuation (**6.8%**).
+- **Digit Width (**$w$): Total variance is primarily partitioned between digit identity (**43.5%**) and writer identity (**40.5%**). Naturally, character width varies intrinsically across different digits (e.g., a digit '1' versus a digit '0'); nevertheless, substantial inter-writer variance persists with minimal session-induced fluctuation (**6.8%**).
 
--   **Horizontal Position (**$cx$): Influenced moderately by both digit identity (**31.6%**) and writer identity (**34.4%**). Individual writers maintain consistent horizontal placement habits, though a moderate writer-by-session interaction (**10.3%**) indicates minor positional shifts across recording instances.
+- **Horizontal Position (**$cx$): Influenced moderately by both digit identity (**31.6%**) and writer identity (**34.4%**). Individual writers maintain consistent horizontal placement habits, though a moderate writer-by-session interaction (**10.3%**) indicates minor positional shifts across recording instances.
 
--   **Vertical Position (**$cy$): Exhibits poor stability for writer discrimination. Main writer variance accounts for only **10.3%**, whereas writer-by-session interaction (**17.0%**) and residual noise (**57.3%**) dominate total variance. Consequently, vertical alignment varies substantially between sessions and individual stroke replicates, making it an unreliable feature for writer identification.
+- **Vertical Position (**$cy$): Exhibits poor stability for writer discrimination. Main writer variance accounts for only **10.3%**, whereas writer-by-session interaction (**17.0%**) and residual noise (**57.3%**) dominate total variance. Consequently, vertical alignment varies substantially between sessions and individual stroke replicates, making it an unreliable feature for writer identification.
 
 Overall, the variance decomposition yields several key insights regarding feature stability and writer discriminability. Main session effects contribute less than 1% across all spatial metrics (0.1%–0.6%), indicating that no single recording session exhibits global systematic bias or baseline shift, which supports the assumption that sessions represent comparable sampling conditions. Furthermore, inter-individual variance (**Person ID**) constitutes a major proportion of total variation for height, width, and horizontal positioning, confirming that individual writers possess measurable, repeatable handwriting characteristics that generalize across distinct sessions. Finally, handwriting variations between sessions manifest primarily as spatial positional shifts ($cx, cy$) rather than structural or dimensional resizing ($h, w$).
 
@@ -302,16 +296,15 @@ Another potential issue with the data is the rigid structure and balance of the 
 
 These problems have the potential to cause over fitting in the models. The way the data is structured has the potential to over inflate the accuracy during training and validation. Since the images are low resolution, the models can easily over fit to pixel-level noise or minor rendering artifacts introduced by the simulation engine, treating random pixel patterns as meaningful writer features rather than focusing on the actual stroke dynamic and shapes.
 
-
 # Methods and Results
 
 All analyses were conducted in R (R Core Team, 2026), and used the following packages:
 
--   keras3 (Kalinowski et al., 2026) for neural network model building and training\
--   tidyverse (Wickham et al., 2019) for convenient data manipulation\
--   imager (Barthelme, 2025) for image processing and manipulation\
--   pROC (Xavier et al., 2011) for calculation of the area under the curve\
--   reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
+- keras3 (Kalinowski et al., 2026) for neural network model building and training\
+- tidyverse (Wickham et al., 2019) for convenient data manipulation\
+- imager (Barthelme, 2025) for image processing and manipulation\
+- pROC (Xavier et al., 2011) for calculation of the area under the curve\
+- reticulate (Kalinowski et al., 2026) for interfacing between R and Python, enabling the use of the TensorFlow backend
 
 Seeds were set throughout the analyses to ensure reproducibility of results.
 
@@ -370,7 +363,7 @@ kable(nu_tab, booktabs = TRUE, row.names = FALSE,
 
 On the validation session, the default CNN reached a training accuracy of 99.4% and a validation accuracy of 44.8%, a gap of 55 points: it memorises the training sessions. The tuned CNN reached 86.0% and 60.4%, a gap of 26 points. The two models have the same architecture, so the improvement comes from the four changed settings together (activation, dropout, learning rate and penalty). The validation score of the tuned CNN is optimistic, because its settings were selected on this session.
 
- On the held-out session, the tuned CNN identified the writer for 55.0% of the images, against 5% expected by chance with 20 writers (@tbl-cnn-test). A 95% interval obtained by resampling writers is 42.7% to 67.1%. The accuracy is lower than the validation accuracy (60.4%), as expected when settings are chosen on the validation session.
+On the held-out session, the tuned CNN identified the writer for 55.0% of the images, against 5% expected by chance with 20 writers (@tbl-cnn-test). A 95% interval obtained by resampling writers is 42.7% to 67.1%. The accuracy is lower than the validation accuracy (60.4%), as expected when settings are chosen on the validation session.
 
 ```{r}
 #| label: tbl-cnn-test
@@ -648,16 +641,16 @@ The higher training loss visible in @fig-siamese-1-layer-epochs may partly be ex
 
 # References
 
--   R Core Team (2026). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing, Vienna, Austria. doi:10.32614/R.manuals <https://doi.org/10.32614/R.manuals>. <https://www.R-project.org/>.
+- R Core Team (2026). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing, Vienna, Austria. doi:10.32614/R.manuals <https://doi.org/10.32614/R.manuals>. <https://www.R-project.org/>.
 
--   Kalinowski T, Allaire J, Chollet F (2026). *keras3: R Interface to 'Keras'*. doi:10.32614/CRAN.package.keras3 <https://doi.org/10.32614/CRAN.package.keras3>. R package version 1.5.1, <https://CRAN.R-project.org/package=keras3>.
+- Kalinowski T, Allaire J, Chollet F (2026). *keras3: R Interface to 'Keras'*. doi:10.32614/CRAN.package.keras3 <https://doi.org/10.32614/CRAN.package.keras3>. R package version 1.5.1, <https://CRAN.R-project.org/package=keras3>.
 
--   Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to the tidyverse.” *Journal of Open Source Software*, *4*(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>.
+- Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hester J, Kuhn M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, Takahashi K, Vaughan D, Wilke C, Woo K, Yutani H (2019). “Welcome to the tidyverse.” *Journal of Open Source Software*, *4*(43), 1686. doi:10.21105/joss.01686 <https://doi.org/10.21105/joss.01686>.
 
--   Barthelme S (2025). *imager: Image Processing Library Based on 'CImg'*. doi:10.32614/CRAN.package.imager <https://doi.org/10.32614/CRAN.package.imager>. R package version 1.0.8, <https://CRAN.R-project.org/package=imager>.
+- Barthelme S (2025). *imager: Image Processing Library Based on 'CImg'*. doi:10.32614/CRAN.package.imager <https://doi.org/10.32614/CRAN.package.imager>. R package version 1.0.8, <https://CRAN.R-project.org/package=imager>.
 
--   Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek, Jean-Charles Sanchez and Markus Müller (2011). pROC: an open-source package for R and S+ to analyze and compare ROC curves. BMC Bioinformatics, 12, p. 77. DOI: 10.1186/1471-2105-12-77 <http://www.biomedcentral.com/1471-2105/12/77/>
+- Xavier Robin, Natacha Turck, Alexandre Hainard, Natalia Tiberti, Frédérique Lisacek, Jean-Charles Sanchez and Markus Müller (2011). pROC: an open-source package for R and S+ to analyze and compare ROC curves. BMC Bioinformatics, 12, p. 77. DOI: 10.1186/1471-2105-12-77 <http://www.biomedcentral.com/1471-2105/12/77/>
 
--   Kalinowski T, Ushey K, Allaire J, Tang Y (2026). *reticulate: Interface to 'Python'*. doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.
+- Kalinowski T, Ushey K, Allaire J, Tang Y (2026). *reticulate: Interface to 'Python'*. doi:10.32614/CRAN.package.reticulate <https://doi.org/10.32614/CRAN.package.reticulate>. R package version 1.47.0, <https://CRAN.R-project.org/package=reticulate>.
 
--   OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026).
+- OpenAI (2026) ChatGPT \[Large language model\]. Available at: https://chatgpt.com/ (Accessed: 16 October 2026).
