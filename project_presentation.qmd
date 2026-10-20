@@ -178,11 +178,13 @@ filter_kernel_tune |>
 * Hidden layers: 2
 * Activation functions: reLU and tanh
 * Filter (square) size: $5 \times 5$
-* Number of filters 16 and 32
+* Number of filters: 16 and 32
+* Epochs: 6
 
-
-* Outputs - distance threshold
-* Overall performance 
+#### Outputs 
+* Distance threshold: 0.247
+* Balanced accuracy: 0.820
+* Loss: 0.104
 
 
 ### Session results
