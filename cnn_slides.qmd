@@ -1,0 +1,179 @@
+---
+title: "DS4I Assignment 2: CNN part"
+format: beamer
+---
+
+```{r}
+#| message: false
+#| warning: false
+#| include: false
+library(knitr)
+```
+
+<!-- =====================================================================
+     Everything from the next line down to the line "END OF CNN PART" is the
+     CNN section. To merge it into the group presentation, paste it just
+     ABOVE the line "# Siamese Neural Network". It needs only knitr, which
+     the group file already loads.
+     ===================================================================== -->
+
+# Convolutional Neural Network
+## Methods
+
+### Question and task
+
+* Question: can a writer be identified from a single handwritten digit?
+* Input: one $28 \times 28$ image
+* Output: a probability for each of the 20 writers (softmax); the predicted writer has the highest probability
+* The digit is neither an input nor a label
+* Same split as the Siamese network: train sessions 1--3, validation session 4, test session 5
+
+::: notes
+Start here. One image in, 20 probabilities out. We split by session because the 50 replicates of a digit by one writer in one session are near-duplicates, so a random split would leak.
+:::
+
+### Architecture
+
+* Two convolutional layers: 16 filters of $3 \times 3$, each followed by an activation
+* Dropout after the first layer, $2 \times 2$ max pooling, flatten
+* 20-unit softmax output layer
+* 48,580 trainable parameters, 95% of them in the output layer
+* Loss: categorical cross-entropy; Adam optimiser; batches of 64
+
+::: notes
+Most parameters sit in the last layer, which can memorise where strokes fell in the training sessions. That is why this model overfits easily, and why we tune dropout and a penalty.
+:::
+
+### Models compared
+
+* **Default CNN:** the course settings (ReLU, dropout 0.2, learning rate 0.01, no penalty)
+* **Tuned CNN:** settings chosen on the validation session only
+* **Nearest centroid:** each writer's average image of a digit as a template
+* **Linear model:** softmax regression on the 784 pixels
+
+### Tuning: four stages, all on session 4
+
+1. Activation (tanh or ReLU), learning rate, dropout rate: 72 combinations
+2. Number of filters, kernel size, pool size: 12 combinations
+3. Number of epochs, from the validation curves
+4. L2 penalty $\nu$: 8 values from 0 to 0.3
+
+* Three random seeds per candidate
+* Cross-entropy is computed without the penalty term, so values can be compared across penalties
+
+### Settings: default and tuned
+
+| Setting | Default | Tuned |
+|:--------|:--------|:------|
+| Activation | ReLU | tanh |
+| Dropout rate | 0.2 | 0.7 |
+| Learning rate | 0.01 | 0.0001 |
+| L2 penalty | none | 0.1 |
+| Filters, kernel, pool | 16, $3 \times 3$, $2 \times 2$ | same |
+| Epochs | 10 | 10 |
+
+::: notes
+Same architecture, 48,580 parameters. The two models differ in four settings: activation, dropout, learning rate and the penalty.
+:::
+
+### How the models are judged
+
+* Accuracy, cross-entropy, and per-writer recall and precision
+* Every writer has 250 test images, so accuracy equals the average per-writer recall
+* Only about 100 independent writer--digit cells per session (20 writers $\times$ 5 digits)
+* So intervals come from resampling writers, not images
+
+## Results
+
+### Effect of the L2 penalty (validation session)
+
+| $\nu$ | Training accuracy | Validation accuracy | Validation cross-entropy |
+|:------|------------------:|--------------------:|-------------------------:|
+| 0 | 0.979 | 0.591 | 1.892 |
+| 0.003 | 0.979 | 0.593 | 1.727 |
+| 0.01 | 0.975 | 0.600 | 1.529 |
+| 0.03 | 0.957 | 0.606 | 1.392 |
+| 0.1 | 0.862 | 0.612 | 1.447 |
+| 0.3 | 0.165 | 0.135 | 2.986 |
+
+* U-shaped: the lowest cross-entropy is at 0.03; we used the next value, 0.1
+
+::: notes
+At 0.3 the model cannot learn, and its cross-entropy is almost exactly that of guessing (3.0). We took 0.1, one step past the minimum, because the minimum of a noisy curve is optimistic and more regularisation favours the simpler model.
+:::
+
+### Training versus validation
+
+| Model | Training | Validation | Gap |
+|:------|---------:|-----------:|----:|
+| Default CNN | 99.4% | 44.8% | 55 points |
+| Tuned CNN | 86.0% | 60.4% | 26 points |
+
+* The default CNN memorises the training sessions
+* Tuning halves the gap, but a large gap remains
+* The tuned score is optimistic: its settings were chosen on this session
+
+### Test performance (session 5)
+
+| Model | Accuracy | Cross-entropy |
+|:------|---------:|--------------:|
+| Nearest centroid | 47.3% | -- |
+| Linear softmax | 43.6% | -- |
+| Default CNN | 49.3% | 5.87 |
+| **Tuned CNN (final)** | **55.0%** | **1.39** |
+| Guessing among 20 writers | 5.0% | 3.00 |
+
+* 95% interval for the tuned CNN: 42.7% to 67.1%
+
+### Is the tuned CNN really better?
+
+* Versus the linear model: **+11.4 points** (95% interval 4.1 to 18.9), so unlikely to be due to which writers were sampled
+* Versus the default CNN: +5.7 points (interval $-1.9$ to 13.6), which cannot be told apart from zero
+* The clearest difference is in the probabilities: cross-entropy 1.39 against 5.87
+* The default CNN is overconfident: wrong about half the time, but gives its wrong answers high probability
+
+### Accuracy by writer
+
+```{r}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 3.6
+#| out-width: "100%"
+recall    <- c(0.396, 0.576, 0.424, 0.404, 0.000, 0.840, 1.000, 0.764, 0.596, 0.292,
+               0.676, 0.656, 0.004, 0.508, 0.796, 0.344, 0.852, 1.000, 0.600, 0.272)
+precision <- c(0.343, 0.314, 0.731, 0.605, 0.000, 0.814, 0.628, 0.508, 0.603, 0.537,
+               0.610, 0.594, 0.005, 0.599, 0.686, 0.637, 0.842, 1.000, 0.556, 0.249)
+par(mar = c(4, 4, 1, 1))
+mids <- barplot(rbind(recall, precision), beside = TRUE, names.arg = rep("", 20),
+                col = c("grey30", "grey75"), ylim = c(0, 1.25), yaxt = "n",
+                xlab = "Writer (person_id)", ylab = "Proportion")
+axis(1, at = colMeans(mids), labels = 1:20, tick = FALSE, cex.axis = 0.8, line = -0.5)
+axis(2, at = seq(0, 1, 0.2), las = 1)
+abline(h = 0.05, lty = 2)
+legend("top", c("Recall (accuracy)", "Precision"), fill = c("grey30", "grey75"),
+       bty = "n", horiz = TRUE, cex = 0.8)
+```
+
+* Writers 7 and 18: every image correct. Writer 5: none. Writer 13: 1 of 250
+
+### Where the errors go
+
+* Writer 10 $\rightarrow$ writer 2: 71% of images (177 of 250)
+* Writer 5 $\rightarrow$ writer 13: 60% (150 of 250)
+* Writer 16 $\rightarrow$ writer 1: 40% (100 of 250)
+* Writer 2 received 459 predictions, only 31% correct (a fair share is 250)
+* Errors come in blocks of about 50: a whole writer--digit cell goes to one wrong writer
+* Accuracy is similar for all five digits (50% to 59%)
+
+::: notes
+This is why the effective sample is about 100 cells and not 5,000 images, and why the interval is wide. Some confusions run in both directions, which may mean two writers write alike, but we did not check that.
+:::
+
+### Conclusions and limits
+
+* A writer can be identified well above chance (55% against 5%), but not reliably
+* A likely reason: a writer's average digit changes between sessions by about 80% of the distance to another writer's digit
+* One validation and one test session, one training run per model, simulated data, a closed set of 20 writers
+* The Siamese network answers a different question with different metrics, so the two are not directly comparable
+
+<!-- END OF CNN PART -->
