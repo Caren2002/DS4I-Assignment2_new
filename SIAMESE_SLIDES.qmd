@@ -1,6 +1,9 @@
 ---
-title: "DS4I Assignment 2"
-author: "Mishka Ramraj"
+title: "DS4I Assignment 2: Neural Networks"
+author:
+  - Mishka Ramraj
+  - Una Fundzo
+  - Caren Pahla
 format: beamer
 ---
 
@@ -13,185 +16,279 @@ library(knitr)
 library(kableExtra)
 ```
 
+# Introduction
+
+#### Research context
+
+-   Handwriting varies across individuals and across writing sessions
+
+-   Despite this variability, individuals may retain distinctive handwriting characteristics
+
+-   The study investigates whether neural networks can identify writers from handwritten digit images
+
+#### Research questions
+
+-   Can a writer be identified by a single handwritten digit?
+
+-   Can a model determine whether two handwritten digits belong to the same writer?
+
+#### Approach
+
+-   Convolutional Neural Network
+
+-   Siamese Neural Network
+
+# Exploratory Data Analysis
+
+### Visual findings
+
+```{r}
+#| echo: false
+library(dplyr)
+library(knitr)
+
+data <- readRDS("handwriting.rds")
+meta <- data$metadata
+X <- matrix(data$images, nrow = 25000) / 255
+images <- data$images
+
+s <- 1
+selected_persons <- c(1, 9, 18)
+
+# Set up a plotting grid: 3 rows (one for each person) and 5 columns (for the 5 sessions)
+par(mfrow = c(length(selected_persons), 5), mar = c(0.5, 0.5, 1, 0.5))
+
+for (p in selected_persons) {
+  for (d in 0:4) {
+    # Find the index matching the person, digit, and session
+    matching_indices <- which(meta$person_id == p & meta$digit == d & meta$session == s)
+    
+    if (length(matching_indices) > 0) {
+      i <- matching_indices[1]
+      image(t(data$images[i,,,1])[, 28:1], axes = FALSE, col = gray.colors(256),
+            main = paste("Person", p, "| S", s))
+    } else {
+      # Plot an empty blank space if a specific combination is missing
+      plot.new()
+      title(main = paste("Person", p, "| S", s))
+    }
+  }
+}
+
+# Reset plotting parameters back to default
+par(mfrow = c(1, 1))
+```
+
+### Visual findings
+
+-   Different writers display visible handwriting characteristics that could help a model identify them
+
+-   Handwriting varies within the same person, but certain individual characteristics persist across sessions
+
+-   A writer's style can be expressed across different digits, potentially helping a model recognise a person even when the digit changes
+
+### Variance decomposition
+
+Percentage of variance explained
+
+::: {#tbl-variance_decomposition}
+|     | Digit | Person ID | Session | Person ID : Session | Residuals |
+|:----|------:|----------:|--------:|--------------------:|----------:|
+| h   |   7.6 |      62.9 |     0.1 |                 2.9 |      26.5 |
+| w   |  43.5 |      40.5 |     0.4 |                 6.8 |       8.8 |
+| cx  |  31.6 |      34.4 |     0.6 |                10.3 |      23.1 |
+| cy  |  15.0 |      10.3 |     0.4 |                17.0 |      57.3 |
+
+Table. Percentage of Variance Decomposition for Features
+:::
+
+-   Digit dimensions, particularly height, are more stable indicators of writer identity than vertical placement
+
+### Euclidean distance
+
+::: {#tbl-euclidean_distances tbl-colwidths="[40,12,12,12,12,12]"}
+|                            | Digit 0 | Digit 1 | Digit 2 | Digit 3 | Digit 4 |
+|:---------------------------|--------:|--------:|--------:|--------:|--------:|
+| same_writer_diff_session |    7.06 |    6.48 |    6.58 |    6.65 |    6.35 |
+|diff_writer_same_session |    8.78 |    7.85 |    8.09 |    8.17 |    7.98 |
+|diff_writer_diff_session |    8.79 |    7.85 |    8.10 |    8.18 |    7.98 |
+| Ratio (Same/Diff Writer)   |    0.80 |    0.83 |    0.81 |    0.81 |    0.80 |
+
+Table. Euclidean Distances and Ratios Across Digits (0 to 4)
+:::
+
+-   There is a measurable signal for distinguishing writers, but handwriting changes between sessions enough to make identification challenging
+
+-   The similarity of distances for different writers within and across sessions also supports the finding that there is little overall session effect
 
 # Siamese Neural Network
+
 ## Methods
 
 ### General Siamese structure
 
-* Input: 2 images
-* Uses a CNN
-* Output: distance between embeddings of images
-* Distance infers dissimilarity
+-   Input: 2 images
 
-* Contrastive loss:
+-   Uses a CNN
+
+-   Output: distance between embeddings of images
+
+-   Distance infers dissimilarity
+
+-   Contrastive loss:
 
 $$L = yD^2 + (1-y)max(0, m-D)^2$$
 
-
-
-
-
-
 ### Input pairs
 
-#### Training:   
+#### Training:
 
-#### Validation: 
- 
-
-#### Test: 
-
-
-
-### Input pairs
-
-#### Training:  
-* sessions 1, 2, 3  
-
-#### Validation: 
- 
+#### Validation:
 
 #### Test:
 
-
-
 ### Input pairs
 
-#### Training:  
-* sessions 1, 2, 3  
+#### Training:
 
-#### Validation: 
-* session 4  
+-   sessions 1, 2, 3
+
+#### Validation:
 
 #### Test:
 
+### Input pairs
 
+#### Training:
+
+-   sessions 1, 2, 3
+
+#### Validation:
+
+-   session 4
+
+#### Test:
 
 ### Input pairs
 
-#### Training:  
-* sessions 1, 2, 3  
+#### Training:
 
-#### Validation: 
-* session 4  
+-   sessions 1, 2, 3
 
-#### Test:  
-* same writer, same session  
+#### Validation:
 
+-   session 4
 
+#### Test:
 
-### Input pairs
-
-#### Training:  
-* sessions 1, 2, 3  
-
-#### Validation: 
-* session 4  
-
-#### Test:  
-* same writer, same session  
-* same writer, different sessions  
-
-
+-   same writer, same session
 
 ### Input pairs
 
-#### Training:  
-* sessions 1, 2, 3  
+#### Training:
 
-#### Validation: 
-* session 4  
+-   sessions 1, 2, 3
 
-#### Test:  
-* same writer, same session  
-* same writer, different sessions  
-* different writers, same session
+#### Validation:
 
+-   session 4
 
+#### Test:
 
-
-### Input pairs
-
-#### Training:  
-* sessions 1, 2, 3  
-
-#### Validation: 
-* session 4  
-
-#### Test:  
-* same writer, same session  
-* same writer, different sessions  
-* different writers, same session  
-* different writers, different sessions
-
-
-
+-   same writer, same session\
+-   same writer, different sessions
 
 ### Input pairs
 
-#### Training:  
-* sessions 1, 2, 3  
+#### Training:
 
-#### Validation: 
-* session 4  
+-   sessions 1, 2, 3
 
-#### Test:  
-* same writer, same session  
-* same writer, different sessions  
-* different writers, same session  
-* different writers, different sessions
-* sessions 1 - 5
+#### Validation:
 
+-   session 4
 
+#### Test:
 
-### Metrics  
+-   same writer, same session\
+-   same writer, different sessions\
+-   different writers, same session
+
+### Input pairs
+
+#### Training:
+
+-   sessions 1, 2, 3
+
+#### Validation:
+
+-   session 4
+
+#### Test:
+
+-   same writer, same session\
+-   same writer, different sessions\
+-   different writers, same session\
+-   different writers, different sessions
+
+### Input pairs
+
+#### Training:
+
+-   sessions 1, 2, 3
+
+#### Validation:
+
+-   session 4
+
+#### Test:
+
+-   same writer, same session\
+-   same writer, different sessions\
+-   different writers, same session\
+-   different writers, different sessions
+-   sessions 1 - 5
+
+### Metrics
 
 #### Sensitivity
 
-* Proportion of actual positive cases correctly identified
-$$\text{Sensitivity} = \frac{\text{True Positives}}{\text{True Positives + False Negatives}}$$  
+-   Proportion of actual positive cases correctly identified $$\text{Sensitivity} = \frac{\text{True Positives}}{\text{True Positives + False Negatives}}$$
 
+#### Specificity
 
-#### Specificity 
-* Proportion of actual negative cases correctly identified 
-$$\text{Specificity} = \frac{\text{True Negatives}}{\text{True Negatives + False Positives}} $$  
+-   Proportion of actual negative cases correctly identified $$\text{Specificity} = \frac{\text{True Negatives}}{\text{True Negatives + False Positives}} $$
 
 #### Balanced accuracy
-* Accounts for imbalanced classes
-$$\text{Balanced Accuracy} = \frac{\text{Sensitivity + Specificity}}{2}$$
 
+-   Accounts for imbalanced classes $$\text{Balanced Accuracy} = \frac{\text{Sensitivity + Specificity}}{2}$$
 
 ### Default calibration
+
 | Hyperparameter         | Value                |
 |:-----------------------|:---------------------|
 | Hidden layers          | 2                    |
-| Activation functions    | ReLU                 |
-| Number of filters      | 16 and $2 \times 16$            |
-| Filter size            | $3 \times 3$          |
-| Learning rate          | $1 \times 10^{-3}$    |
+| Activation functions   | ReLU                 |
+| Number of filters      | 16 and $2 \times 16$ |
+| Filter size            | $3 \times 3$         |
+| Learning rate          | $1 \times 10^{-3}$   |
 | Dropout rate           | 0.2                  |
-| L2 regularisation      | $1 \times 10^{-3}$    |
-| Layer 1 pooling window | $2 \times 2$          |
+| L2 regularisation      | $1 \times 10^{-3}$   |
+| Layer 1 pooling window | $2 \times 2$         |
 | Embedding length       | 16                   |
 | Epochs                 | 15                   |
 
-
-
 ### Tuning
 
-* Hidden layers
-* Activation functions
-* Filter (square) size 
-* Number of filters 
-* Average validation performance metrics reported
-
-
+-   Hidden layers
+-   Activation functions
+-   Filter (square) size
+-   Number of filters
+-   Average validation performance metrics reported
 
 ## Results
 
 ### Tuning hidden layers
-
 
 ```{r}
 #| echo: false
@@ -211,8 +308,6 @@ hidden_layer_tune |>
     align = c("r", "r", "r")
   )
 ```
-
-
 
 ### Tuning activation functions
 
@@ -246,31 +341,25 @@ act_fn_tune |>
   )
 ```
 
+### Tuning filter numbers and size
 
+![](presentation_siamese_filter_tune.png){#fig-siamese-error2 width="100%"}
 
-
-### Tuning filter numbers and size 
-
- ![](presentation_siamese_filter_tune.png){#fig-siamese-error2 width="100%"}
-
-
-
-
-### Final model 
+### Final model
 
 #### Tuned inputs
 
-* Hidden layers: 2
-* Activation functions: reLU and tanh
-* Filter (square) size: $5 \times 5$
-* Number of filters: 16 and 32
-* Epochs: 6
+-   Hidden layers: 2
+-   Activation functions: reLU and tanh
+-   Filter (square) size: $5 \times 5$
+-   Number of filters: 16 and 32
+-   Epochs: 6
 
-#### Outputs 
-* Test Balanced accuracy: 0.820
-* Test Loss: 0.104
-* Distance threshold: 0.247
+#### Outputs
 
+-   Test Balanced accuracy: 0.820
+-   Test Loss: 0.104
+-   Distance threshold: 0.247
 
 ### Session results
 
@@ -279,9 +368,7 @@ act_fn_tune |>
 | Same         | 2000 |       0.899 |       0.995 |             0.947 |
 | Different    | 2000 |       0.112 |       0.997 |             0.554 |
 
-
 ### Digit results
-
 
 ```{r}
 #| echo: false
@@ -306,8 +393,6 @@ digit_results |>
     background = "red!15"
   )
 ```
-
-
 
 ### Writer results (1 - 10)
 
@@ -337,8 +422,6 @@ writer_results1 |>
     background = "green!15"
   )
 ```
-
-
 
 ### Writer results (11 - 20)
 
@@ -372,3 +455,65 @@ writer_results2 |>
     background = "red!15"
   )
 ```
+
+# Discussion
+
+
+### CNN accuracy
+
+-   Achieved 55.0% writer identification accuracy, well above the 5% random-guessing baseline
+
+-   Outperformed the linear baseline by 11.4 percentage points
+
+-   Similar accuracy to the default CNN, but substantially better probability calibration (cross-entropy: 1.39 vs. 5.87)
+
+-   Test accuracy had a wide confidence interval of 42.7%–67.1%, indicating uncertainty
+
+### CNN model limitations
+
+-   Accuracy varied significantly between writers, ranging from 0% to 100%
+
+-   Misclassifications were systematic, with similar-looking digits often assigned to the same incorrect writer
+
+-   Cross-session handwriting variation made a writer's new samples resemble another writer's training samples
+
+-   Tuning reduced the training–validation accuracy gap from 55 to 26 percentage points, but overfitting remained
+
+-   The test accuracy of 55.0% is more reliable than the 60.4% validation accuracy
+
+
+### Siamese accuracy
+
+-   Performed well when identifying pairs of handwriting samples from the same session
+
+-   Performance declined substantially when comparing handwriting across different sessions
+
+-   Cross-session balanced accuracy fell to 55.4%, only slightly above the 50% random-guessing baseline
+
+-   Sensitivity dropped to 11.2%, indicating difficulty identifying samples written by the same person across sessions
+
+-   Validation performance may overestimate real-world reliability because validation data did not fully represent session variability
+
+### Siamese model limitations
+
+-   Sequential hyperparameter tuning may have overlooked interactions between parameters
+
+-   The final model performed worse than the tuning models, suggesting the selected combination may not have been optimal
+
+-   Repeated tuning on the same validation set may have produced overly optimistic performance estimates
+
+-   Differences in session representation across training, validation and test datasets complicated generalisation
+
+# Conclusion
+
+
+### Conclusion
+
+-   Both models struggled with cross-session handwriting variation
+
+-   The CNN could identify writers above chance, but its accuracy was not sufficiently reliable
+
+-   The Siamese network distinguished same-session pairs more effectively than cross-session pairs
+
+-   Variation in an individual's handwriting across sessions appears to be the main obstacle to reliable writer recognition
+
