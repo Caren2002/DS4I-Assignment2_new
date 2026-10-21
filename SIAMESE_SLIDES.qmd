@@ -372,12 +372,3 @@ writer_results2 |>
     background = "red!15"
   )
 ```
-
-
-
-
-
-
-### Siamese Example: Predicted different writer
-
-![](siamese_error2.png){#fig-siamese-error2 width="100%"}
