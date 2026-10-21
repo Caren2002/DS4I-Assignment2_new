@@ -1,0 +1,374 @@
+---
+title: "DS4I Assignment 2"
+author: "Mishka Ramraj"
+format: beamer
+---
+
+```{r}
+#| message: false
+#| warning: false
+#| include: false
+library(dplyr)
+library(knitr)
+library(kableExtra)
+```
+
+
+# Siamese Neural Network
+## Methods
+
+### General Siamese structure
+
+* Input: 2 images
+* Uses a CNN
+* Output: distance between embeddings of images
+* Distance infers dissimilarity
+
+* Contrastive loss:
+
+$$L = yD^2 + (1-y)max(0, m-D)^2$$
+
+
+
+
+
+
+### Input pairs
+
+#### Training:   
+
+#### Validation: 
+ 
+
+#### Test: 
+
+
+
+### Input pairs
+
+#### Training:  
+* sessions 1, 2, 3  
+
+#### Validation: 
+ 
+
+#### Test:
+
+
+
+### Input pairs
+
+#### Training:  
+* sessions 1, 2, 3  
+
+#### Validation: 
+* session 4  
+
+#### Test:
+
+
+
+### Input pairs
+
+#### Training:  
+* sessions 1, 2, 3  
+
+#### Validation: 
+* session 4  
+
+#### Test:  
+* same writer, same session  
+
+
+
+### Input pairs
+
+#### Training:  
+* sessions 1, 2, 3  
+
+#### Validation: 
+* session 4  
+
+#### Test:  
+* same writer, same session  
+* same writer, different sessions  
+
+
+
+### Input pairs
+
+#### Training:  
+* sessions 1, 2, 3  
+
+#### Validation: 
+* session 4  
+
+#### Test:  
+* same writer, same session  
+* same writer, different sessions  
+* different writers, same session
+
+
+
+
+### Input pairs
+
+#### Training:  
+* sessions 1, 2, 3  
+
+#### Validation: 
+* session 4  
+
+#### Test:  
+* same writer, same session  
+* same writer, different sessions  
+* different writers, same session  
+* different writers, different sessions
+
+
+
+
+### Input pairs
+
+#### Training:  
+* sessions 1, 2, 3  
+
+#### Validation: 
+* session 4  
+
+#### Test:  
+* same writer, same session  
+* same writer, different sessions  
+* different writers, same session  
+* different writers, different sessions
+* sessions 1 - 5
+
+
+
+### Metrics  
+
+#### Sensitivity
+
+* Proportion of actual positive cases correctly identified
+$$\text{Sensitivity} = \frac{\text{True Positives}}{\text{True Positives + False Negatives}}$$  
+
+
+#### Specificity 
+* Proportion of actual negative cases correctly identified 
+$$\text{Specificity} = \frac{\text{True Negatives}}{\text{True Negatives + False Positives}} $$  
+
+#### Balanced accuracy
+* Accounts for imbalanced classes
+$$\text{Balanced Accuracy} = \frac{\text{Sensitivity + Specificity}}{2}$$
+
+
+### Default calibration
+| Hyperparameter         | Value                |
+|:-----------------------|:---------------------|
+| Hidden layers          | 2                    |
+| Activation functions    | ReLU                 |
+| Number of filters      | 16 and $2 \times 16$            |
+| Filter size            | $3 \times 3$          |
+| Learning rate          | $1 \times 10^{-3}$    |
+| Dropout rate           | 0.2                  |
+| L2 regularisation      | $1 \times 10^{-3}$    |
+| Layer 1 pooling window | $2 \times 2$          |
+| Embedding length       | 16                   |
+| Epochs                 | 15                   |
+
+
+
+### Tuning
+
+* Hidden layers
+* Activation functions
+* Filter (square) size 
+* Number of filters 
+* Average validation performance metrics reported
+
+
+
+## Results
+
+### Tuning hidden layers
+
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+hidden_layer_tune <- data.frame(
+  `Number of Hidden Layers` = c(1, 2),
+  `Validation Loss` = c(0.214, 0.105),
+  `Balanced Accuracy` = c(0.773, 0.966),
+  check.names = FALSE
+)
+
+hidden_layer_tune |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("r", "r", "r")
+  )
+```
+
+
+
+### Tuning activation functions
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+# Create the data frame
+act_fn_tune <- data.frame(
+  `Activation Functions` = c(
+    "relu_relu",
+    "tanh_relu",
+    "relu_tanh",
+    "tanh_tanh"
+  ),
+  `Validation Loss` = c(0.105, 0.103, 0.108, 0.113),
+  `Balanced Accuracy` = c(0.966, 0.971, 0.982, 0.980),
+  check.names = FALSE
+)
+
+# Display the table and highlight relu_tanh
+act_fn_tune |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("l", "r", "r")
+  ) |>
+  row_spec(
+    which(act_fn_tune$`Activation Functions` == "relu_tanh"),
+    background = "yellow!45"
+  )
+```
+
+
+
+
+### Tuning filter numbers and size 
+
+ ![](presentation_siamese_filter_tune.png){#fig-siamese-error2 width="100%"}
+
+
+
+
+### Final model 
+
+#### Tuned inputs
+
+* Hidden layers: 2
+* Activation functions: reLU and tanh
+* Filter (square) size: $5 \times 5$
+* Number of filters: 16 and 32
+* Epochs: 6
+
+#### Outputs 
+* Test Balanced accuracy: 0.820
+* Test Loss: 0.104
+* Distance threshold: 0.247
+
+
+### Session results
+
+| Session Type |    n | Sensitivity | Specificity | Balanced Accuracy |
+|:-------------|-----:|------------:|------------:|------------------:|
+| Same         | 2000 |       0.899 |       0.995 |             0.947 |
+| Different    | 2000 |       0.112 |       0.997 |             0.554 |
+
+
+### Digit results
+
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+digit_results <- data.frame(
+  Digit = 0:4,
+  Sensitivity = c(0.501, 0.532, 0.513, 0.476, 0.510),
+  Specificity = c(0.995, 0.995, 0.998, 1.000, 0.992),
+  `Balanced Accuracy` = c(0.748, 0.763, 0.755, 0.738, 0.751),
+  check.names = FALSE
+)
+
+digit_results |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("r", "r", "r", "r")
+  ) |>
+  row_spec(
+    which(digit_results$Digit == 3),
+    background = "red!15"
+  )
+```
+
+
+
+### Writer results (1 - 10)
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+writer_results1 <- data.frame(
+  Writer = 1:10,
+  Sensitivity = c(0.538, 0.432, 0.481, 0.518, 0.476,
+                  0.444, 0.587, 0.429, 0.523, 0.557),
+  Specificity = c(0.991, 1.000, 1.000, 1.000, 0.988,
+                  0.990, 1.000, 0.991, 1.000, 1.000),
+  `Balanced Accuracy` = c(0.765, 0.716, 0.740, 0.759, 0.732,
+                          0.717, 0.793, 0.710, 0.761, 0.778),
+  check.names = FALSE
+)
+
+writer_results1 |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("r", "r", "r", "r")
+  ) |>
+  row_spec(
+    which(writer_results1$Writer == 7),
+    background = "green!15"
+  )
+```
+
+
+
+### Writer results (11 - 20)
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+writer_results2 <- data.frame(
+  Writer = 11:20,
+  Sensitivity = c(0.495, 0.520, 0.403, 0.453, 0.484,
+                  0.543, 0.542, 0.613, 0.557, 0.552),
+  Specificity = c(1.000, 1.000, 0.991, 0.983, 1.000,
+                  1.000, 0.987, 1.000, 1.000, 1.000),
+  `Balanced Accuracy` = c(0.748, 0.760, 0.697, 0.718, 0.742,
+                          0.772, 0.765, 0.806, 0.778, 0.776),
+  check.names = FALSE
+)
+
+writer_results2 |>
+  kable(
+    format = "latex",
+    booktabs = TRUE,
+    align = c("r", "r", "r", "r")
+  ) |>
+  row_spec(
+    which(writer_results2$Writer == 18),
+    background = "green!15"
+  ) |> 
+  row_spec(
+    which(writer_results2$Writer == 13),
+    background = "red!15"
+  )
+```
