@@ -162,6 +162,21 @@ $$\text{Specificity} = \frac{\text{True Negatives}}{\text{True Negatives + False
 $$\text{Balanced Accuracy} = \frac{\text{Sensitivity + Specificity}}{2}$$
 
 
+### Default calibration
+| Hyperparameter         | Value                |
+|:-----------------------|:---------------------|
+| Hidden layers          | 2                    |
+| Activation functions    | ReLU                 |
+| Number of filters      | 16 and $2 \times 16$            |
+| Filter size            | $3 \times 3$          |
+| Learning rate          | $1 \times 10^{-3}$    |
+| Dropout rate           | 0.2                  |
+| L2 regularisation      | $1 \times 10^{-3}$    |
+| Layer 1 pooling window | $2 \times 2$          |
+| Embedding length       | 16                   |
+| Epochs                 | 15                   |
+
+
 
 ### Tuning
 
@@ -171,17 +186,6 @@ $$\text{Balanced Accuracy} = \frac{\text{Sensitivity + Specificity}}{2}$$
 * Number of filters 
 * Average validation performance metrics reported
 
-### Default calibration
-* hidden layers: 2
-* activation functions: reLU
-* number of filters: 16 and 32
-* filter size: $3 \times 3$
-* learning rate: $1 \times 10^{-3}$
-* drop-out rate: 0.2
-* L2 regularization: $1 \times 10^{-3}$
-* Layer 1 pooling: $2 \times 2$ window
-* embedding: length 16
-* epochs: 15
 
 
 ## Results
@@ -252,34 +256,6 @@ act_fn_tune |>
 
 
 
-### Tuning filter numbers and size 
-
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
-# Create the data frame
-filter_kernel_tune <- data.frame(
-  `Number of Filters` = c(16, 32, 64, 16, 32, 64, 16, 32, 64),
-  `Kernel Size` = c(3, 3, 3, 5, 5, 5, 7, 7, 7),
-  `Validation Loss` = c(0.108, 0.109, 0.115, 0.071, 0.072, 0.073, 0.065, 0.066, 0.068),
-  `Balanced Accuracy` = c(0.982, 0.971, 0.952, 0.991, 0.989, 0.987, 0.990, 0.989, 0.987),
-  check.names = FALSE
-)
-
-# Create the table and highlight rows
-filter_kernel_tune |>
-  kable(
-    format = "latex",
-    booktabs = TRUE,
-    align = c("r", "r", "r", "r")
-  ) |>
-  row_spec(4, background = "yellow!45") |>
-  row_spec(7, background = "yellow!25")
-```
-
-
-
 ### Final model 
 
 #### Tuned inputs
@@ -291,9 +267,9 @@ filter_kernel_tune |>
 * Epochs: 6
 
 #### Outputs 
+* Test Balanced accuracy: 0.820
+* Test Loss: 0.104
 * Distance threshold: 0.247
-* Balanced accuracy: 0.820
-* Loss: 0.104
 
 
 ### Session results
@@ -302,40 +278,6 @@ filter_kernel_tune |>
 |:-------------|-----:|------------:|------------:|------------------:|
 | Same         | 2000 |       0.899 |       0.995 |             0.947 |
 | Different    | 2000 |       0.112 |       0.997 |             0.554 |
-
-
-
-
-
-### Session x writer results
-
-```{r}
-#| echo: false
-#| message: false
-#| warning: false
-pair_type_results <- data.frame(
-  `Pair Type` = c(
-    "Same writer, same session",
-    "Same writer, different session",
-    "Different writer, same session",
-    "Different writer, different session"
-  ),
-  n = c(1000, 1000, 1000, 1000),
-  Accuracy = c(0.899, 0.112, 0.995, 0.997),
-  check.names = FALSE
-)
-
-pair_type_results |>
-  kable(
-    format = "latex",
-    booktabs = TRUE,
-    align = c("l", "r", "r")
-  ) |>
-  row_spec(2, background = "red!15")
-
-```
-
-
 
 
 ### Digit results
@@ -436,7 +378,7 @@ writer_results2 |>
 
 
 
-### Example: Predicted different writer
+### Siamese Example: Predicted different writer
 
 ![](siamese_error2.png){#fig-siamese-error2 width="100%"}
 
